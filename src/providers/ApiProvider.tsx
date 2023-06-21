@@ -1,4 +1,4 @@
-import { RestClientV5 } from 'bybit-api';
+import { RestClientV5 } from 'bybit-api/lib/rest-client-v5';
 import React, { ReactNode, useContext, useState } from 'react';
 
 // Define the API context
@@ -15,7 +15,7 @@ export const ApiProvider: React.FC<IApiProviderProps> = ({ children }: IApiProvi
   // Initialize the API client once
   if (!apiClient) {
     // Retrieve the API key and API secret from SettingsService
-    const client = new RestClientV5({ key: 'gmVkzV8nUbDMZLEgq9', secret: 'AcoaLvOQSyZfRFCoFVLMP5DkJnEXP1JOYE0s', testnet: true });
+    const client = new RestClientV5();
     setApiClient(client);
   }
 
