@@ -3,13 +3,14 @@ import { selectCapital, selectRisk, selectTradeCount, skipChart, startGame, upda
 import { formatCurrencyValue } from '../../utils/tradeUtils';
 import Button from '../Forms/Button';
 import { IGameRisk } from '../../types';
+import { AppDispatch } from '../../store/store';
 
 export const GameInput = () => {
   const capital = useSelector(selectCapital);
   const tradeCount = useSelector(selectTradeCount);
   const risk = useSelector(selectRisk);
+  const dispatch = useDispatch<AppDispatch>();
 
-  const dispatch = useDispatch();
   const resetGame = () => {
     dispatch(startGame());
   };

@@ -1,16 +1,16 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { ThunkDispatch } from 'redux-thunk'
 
 import { Chart } from './components/Chart';
 import { GameInput } from './components/Game';
 import { loadGameData, selectIsLoading, selectRisk, selectTickers, startGame, updatePositionSize } from './slices';
+import { AppDispatch } from './store/store';
 
 const App = () => {
   const isLoading = useSelector(selectIsLoading);
   const tickers = useSelector(selectTickers);
   const risk = useSelector(selectRisk);
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
     dispatch(loadGameData());

@@ -4,12 +4,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import Button from '../Forms/Button';
 import { useDispatch, useSelector } from 'react-redux';
 import { openPosition, playChart, selectChartLines, selectCurrentPosition, selectTrades, setupTrade, skipChart, startGame } from '../../slices';
+import { AppDispatch } from '../../store/store';
 
 export const ChartTools: React.FC = () => {
   const chartLines = useSelector(selectChartLines);
   const position = useSelector(selectCurrentPosition);
   const trades = useSelector(selectTrades);
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
+  
 
   const [intervalId, setIntervalId] = useState<number | undefined>();
   const intervalRef = useRef<number>();

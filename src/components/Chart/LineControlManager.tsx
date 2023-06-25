@@ -1,19 +1,19 @@
 import { CustomPriceLineDraggedEventParams } from '@felipecsl/lightweight-charts';
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { calculateTargetPnL, formatCurrencyValue } from '../../utils/tradeUtils';
-import { IChartLine } from '../../types';
 import {
   selectChartLines,
   selectCurrentPosition,
   selectCurrentPrice,
   selectEntryPrice,
   selectPositionSize,
-  selectRisk,
   selectTickerInfo,
   updateChartLine,
   updatePositionSize,
 } from '../../slices';
+import { AppDispatch } from '../../store/store';
+import { IChartLine } from '../../types';
+import { calculateTargetPnL, formatCurrencyValue } from '../../utils/tradeUtils';
 
 interface LineControlManagerProps {
   chartInstance: any;
@@ -33,12 +33,11 @@ export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartIns
   const chartLines = useSelector(selectChartLines);
   const entryPrice = useSelector(selectEntryPrice);
   const currentPrice = useSelector(selectCurrentPrice);
-  const risk = useSelector(selectRisk);
 
   const chartLineRefs = useRef<any[]>([]);
   const linesRef = useRef<any>(undefined);
 
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
