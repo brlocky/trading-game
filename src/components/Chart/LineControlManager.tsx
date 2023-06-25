@@ -11,12 +11,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   selectChartLines,
   selectCurrentPosition,
-  selectCurrentPrice,
   selectEntryPrice,
   selectPositionSize,
   selectTickerInfo,
   updateChartLine,
-  updatePositionSize,
+  updatePositionSize
 } from '../../slices';
 import { AppDispatch } from '../../store/store';
 import { IChartLine } from '../../types';
@@ -39,7 +38,6 @@ export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartIns
 
   const chartLines = useSelector(selectChartLines);
   const entryPrice = useSelector(selectEntryPrice);
-  const currentPrice = useSelector(selectCurrentPrice);
 
   const chartLineRefs = useRef<IPriceLine[]>([]);
   const linesRef = useRef<IChartLine[]>([]);
@@ -131,9 +129,8 @@ export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartIns
     chartLines.forEach((l, index) => {
       const lineRef = chartLineRefs.current[index];
       if (l.type === 'ENTRY') {
-        const currentPnL = currentPosition ? formatCurrencyValue(calculateTargetPnL(currentPrice, entryPrice, coinAmount)) : '';
         lineRef.applyOptions({
-          title: getLineTitle(l, ++index) + currentPnL,
+          title: getLineTitle(l, ++index),
           lineWidth: currentPosition ? 2 : 1,
           draggable: l.draggable,
         });

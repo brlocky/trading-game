@@ -5,8 +5,8 @@ import { mapKlineToCandleStickData } from '../mappers';
 import { RootState } from '../store/store';
 import { CandlestickDataWithVolume, IChartLine, GameRisk, GameTradeSide, GameState } from '../types';
 
-const MAX_TRADES = 3;
-const INITIAL_CAPITAL = 100;
+const MAX_TRADES = 5;
+const INITIAL_CAPITAL = 1000;
 
 interface IGamePosition {
   symbol: string;

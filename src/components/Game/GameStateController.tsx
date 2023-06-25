@@ -53,13 +53,17 @@ export const GameStateController = () => {
   };
 
   const nextTrade = () => {
-    dispatch(skipChart());
     setVisible(false);
+    setTimeout(()=>{
+      dispatch(skipChart());
+    }, 2000);
   };
 
   const newGame = () => {
-    dispatch(startGame());
     setVisible(false);
+    setTimeout(()=>{
+      dispatch(startGame());
+    }, 1500);
   };
 
   const lastTrade = [...trades].pop();
