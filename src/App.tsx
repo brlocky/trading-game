@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
-import { Chart } from './components/Chart';
-import { loadGameData, selectErrors, selectIsLoading, selectTickers, startGame } from './slices';
 import { useDispatch, useSelector } from 'react-redux';
+import { Chart } from './components/Chart';
+import { GameInput } from './components/Game';
+import { loadGameData, selectIsLoading, selectTickers, startGame } from './slices';
 
 const App = () => {
   const isLoading = useSelector(selectIsLoading);
-  const erros = useSelector(selectErrors);
   const tickers = useSelector(selectTickers);
   const dispatch = useDispatch();
 
@@ -23,7 +23,14 @@ const App = () => {
 
   return (
     <div className="flex flex-col w-full min-h-screen bg-slate-500 justify-center items-center relative">
-      {!isLoading ? <Chart /> : <p>Loading</p>}
+      {!isLoading ? (
+        <>
+          <GameInput />
+          <Chart />
+        </>
+      ) : (
+        <p>Loading</p>
+      )}
     </div>
   );
 };

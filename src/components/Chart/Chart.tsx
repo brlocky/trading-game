@@ -1,11 +1,11 @@
 import { ColorType, CrosshairMode, createChart } from '@felipecsl/lightweight-charts';
-import { KlineIntervalV3 } from 'bybit-api';
-import { debounce } from 'lodash';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { mapKlineToCandleStickData } from '../../mappers';
-import { selectInterval, selectKlines, selectLastKline, selectSymbol, selectTickerInfo } from '../../slices/symbolSlice';
 import { CandlestickDataWithVolume } from '../../types';
+import { selectInterval, selectKlines, selectTickerInfo, selectklineUpdate } from '../../slices';
+import { mapKlineToCandleStickData } from '../../mappers';
+import { RestClientV5 } from 'bybit-api/lib/rest-client-v5';
+import { debounce } from 'lodash';
 import { ChartTools } from './ChartTools';
 import { LineControlManager } from './LineControlManager';
 
@@ -33,8 +33,8 @@ export const Chart: React.FC<Props> = (props) => {
   } = props;
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [lastCandle, setLastCandle] = useState<CandlestickDataWithVolume | undefined>();
   const [loadedCandles, setLoadedCandles] = useState<CandlestickDataWithVolume[]>([]);
+  const [loadedChuncks, setLoadedChuncks] = useState<string[]>([]);
 
   const newSeries = useRef<any>(null);
   const newVolumeSeries = useRef<any>(null);
@@ -42,13 +42,13 @@ export const Chart: React.FC<Props> = (props) => {
   const chartInstanceRef = useRef<any>(null);
   const timeScaleRef = useRef<any>(null);
   const loadedCandlesRef = useRef<any>(null);
+  const loadedChuncksRef = useRef<any>(null);
 
-  const kline = useSelector(selectLastKline);
   const klines = useSelector(selectKlines);
+  const kline = useSelector(selectklineUpdate);
   const tickerInfo = useSelector(selectTickerInfo);
-  const symbol = useSelector(selectSymbol);
   const interval = useSelector(selectInterval);
-
+  const apiClient = new RestClientV5();
 
   const handleResize = () => {
     if (chartInstanceRef.current) {
@@ -57,6 +57,44 @@ export const Chart: React.FC<Props> = (props) => {
       });
     }
   };
+
+  const listenChartTimeScale = useCallback(
+    debounce(() => {
+      const logicalRange = timeScaleRef.current.getVisibleLogicalRange();
+      console.log(logicalRange);
+      if (logicalRange !== null) {
+        const barsInfo = newSeries.current.barsInLogicalRange(logicalRange);
+        if (barsInfo !== null && barsInfo.barsBefore < 10) {
+          if (loadedChuncksRef.current.includes(barsInfo.from)) {
+            return;
+          }
+          setLoadedChuncks([...loadedChuncksRef.current, barsInfo.from]);
+          apiClient
+            .getKline({
+              category: 'linear',
+              symbol: tickerInfo?.symbol as string,
+              interval: interval,
+              end: Number(barsInfo.from) * 1000,
+            })
+            .then((r) => {
+              const candleStickData = r.result.list.map(mapKlineToCandleStickData).sort((a, b) => (a.time as number) - (b.time as number));
+              const allData = [...candleStickData, ...loadedCandlesRef.current].sort((a, b) => (a.time as number) - (b.time as number));
+              const uniqueArr = allData.filter((item, index) => {
+                return (
+                  index ===
+                  allData.findIndex((t) => {
+                    return t.time === item.time;
+                  })
+                );
+              });
+
+              setLoadedCandles(uniqueArr);
+            });
+        }
+      }
+    }, 50),
+    [],
+  );
 
   const initChart = () => {
     if (!chartContainerRef.current) {
@@ -101,9 +139,9 @@ export const Chart: React.FC<Props> = (props) => {
     });
 
     const allKlines = JSON.parse(JSON.stringify(klines));
+    console.log('allKlines', allKlines);
     setLoadedCandles(allKlines);
     newSeries.current.setData(allKlines);
-    setLastCandle(allKlines.length ? allKlines[allKlines.length - 1] : undefined);
     newVolumeSeries.current = chartInstanceRef.current.addHistogramSeries({
       priceFormat: {
         type: 'volume',
@@ -170,69 +208,32 @@ export const Chart: React.FC<Props> = (props) => {
 
   // Update Kline
   useEffect(() => {
-    if (isLoading || !kline || !lastCandle) {
-      console.log('skipkline', isLoading, !!kline, !!lastCandle);
+    if (isLoading || !kline) {
+      console.log('skipkline', isLoading, !!kline);
       return;
     }
     const parsedKline = JSON.parse(JSON.stringify(kline)) as CandlestickDataWithVolume;
-    if (parsedKline.time < lastCandle.time) {
-      console.log('skip candle update');
-      return;
-    }
     newSeries.current.update(parsedKline);
     newVolumeSeries.current.update({ time: kline.time, value: kline.volume, color: 'pink' });
   }, [kline]);
 
   // Update loaded candles
   useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
+    loadedCandlesRef.current = loadedCandles;
+    if (isLoading) return;
     newSeries.current.setData(loadedCandles);
     const volumeData = loadedCandles.map((d: CandlestickDataWithVolume) => {
       return { time: d.time, value: d.volume, color: volumeColor };
     });
     newVolumeSeries.current.setData(volumeData);
-
-    loadedCandlesRef.current = loadedCandles;
   }, [loadedCandles]);
 
-  const listenChartTimeScale = useCallback(
-    debounce(() => {
-      const logicalRange = timeScaleRef.current.getVisibleLogicalRange();
-      if (logicalRange !== null) {
-        const barsInfo = newSeries.current.barsInLogicalRange(logicalRange);
-        if (barsInfo !== null && barsInfo.barsBefore < 10) {
-          apiClient
-            .getKline({
-              category: 'linear',
-              symbol: symbol as string,
-              interval: interval as KlineIntervalV3,
-              end: Number(barsInfo.from) * 1000,
-            })
-            .then((r) => {
-              const candleStickData = r.result.list.map(mapKlineToCandleStickData).sort((a, b) => (a.time as number) - (b.time as number));
-              const allData = [...candleStickData, ...loadedCandlesRef.current].sort((a, b) => (a.time as number) - (b.time as number));
-              const uniqueArr = allData.filter((item, index) => {
-                return (
-                  index ===
-                  allData.findIndex((t) => {
-                    return t.time === item.time;
-                  })
-                );
-              });
-
-              setLoadedCandles(uniqueArr);
-            });
-        }
-      }
-    }, 100),
-    [],
-  );
+  useEffect(() => {
+    loadedChuncksRef.current = loadedChuncks;
+  }, [loadedChuncks]);
 
   return (
-    <div ref={chartContainerRef} className="relative">
+    <div ref={chartContainerRef} className="relative w-full">
       {!isLoading ? (
         <>
           <ChartTools />

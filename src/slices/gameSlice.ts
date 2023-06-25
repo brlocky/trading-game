@@ -1,11 +1,37 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { KlineIntervalV3, LinearInverseInstrumentInfoV5 } from 'bybit-api';
 import { RestClientV5 } from 'bybit-api/lib/rest-client-v5';
 import { mapKlineToCandleStickData } from '../mappers';
 import { RootState } from '../store/store';
 import { CandlestickDataWithVolume, IChartLine } from '../types';
+import { useDispatch } from 'react-redux';
 
 type gameState = 'stopped' | 'playing';
+
+interface IGamePosition {
+  symbol: string;
+  qty: string;
+  value: string;
+  price: string;
+  side: 'Buy' | 'Sell';
+  tp: string;
+  sl: string;
+}
+
+interface IGameNewPosition {
+  price: string;
+  tp: string;
+  sl: string;
+}
+
+interface IGameTrade {
+  symbol: string;
+  qty: string;
+  price: string;
+  exitPrice: string;
+  side: 'Buy' | 'Sell';
+  pnl: string;
+}
 
 interface IGame {
   loading: 'idle' | 'pending';
@@ -13,6 +39,11 @@ interface IGame {
   symbol: string | undefined;
   tickers: LinearInverseInstrumentInfoV5[];
   klines: CandlestickDataWithVolume[];
+  klinesFuture: CandlestickDataWithVolume[];
+  klineUpdate: CandlestickDataWithVolume | undefined;
+  trades: IGameTrade[];
+  capital: number;
+  position: IGamePosition | undefined;
   state: gameState;
   positionSize: number;
   chartLines: IChartLine[];
@@ -25,10 +56,15 @@ const initialState: IGame = {
   symbol: undefined,
   tickers: [],
   klines: [],
+  klineUpdate: undefined,
+  klinesFuture: [],
+  trades: [],
+  capital: 0,
+  position: undefined,
   state: 'stopped',
-  positionSize: 0,
+  positionSize: 1,
   chartLines: [],
-  interval: '15',
+  interval: '60',
 };
 
 const gameSlice = createSlice({
@@ -38,30 +74,77 @@ const gameSlice = createSlice({
     // updatePositionSize(state, action: PayloadAction<number>) {
     //   state.positionSize = action.payload;
     // },
-    // addChartLine(state, action: PayloadAction<IChartLine>) {
-    //   state.chartLines = [...state.chartLines, { ...action.payload }];
-    // },
-    // updateChartLine(state, action: PayloadAction<{ index: number; line: IChartLine }>) {
-    //   state.chartLines[action.payload.index] = { ...action.payload.line };
-    // },
-    // removeChartLine(state, action: PayloadAction<{ index: number }>) {
-    //   state.chartLines.splice(action.payload.index, 1);
-    // },
-    // // reset only when filled, to avoid rerender issues
-    // resetChartLines(state) {
-    //   if (state.chartLines.length) {
-    //     state.chartLines = [];
-    //   }
-    // },
-    // updateSymbol(state, action: PayloadAction<string>) {
-    //   state.symbol = action.payload;
-    // },
-    // updateInterval(state, action: PayloadAction<KlineIntervalV3>) {
-    //   state.interval = action.payload;
-    // },
-    // updateKlines(state, action: PayloadAction<CandlestickDataWithVolume[]>) {
-    //   state.klines = [...action.payload];
-    // },
+    addChartLine(state, action: PayloadAction<IChartLine>) {
+      state.chartLines = [...state.chartLines, { ...action.payload }];
+    },
+    updateChartLine(state, action: PayloadAction<{ index: number; line: IChartLine }>) {
+      state.chartLines[action.payload.index] = { ...action.payload.line };
+    },
+    removeChartLine(state, action: PayloadAction<{ index: number }>) {
+      state.chartLines.splice(action.payload.index, 1);
+    },
+    openPosition(state, action: PayloadAction<{ position: IGameNewPosition }>) {
+      const { position } = action.payload;
+      state.position = {
+        symbol: state.symbol as string,
+        qty: state.positionSize.toString(),
+        value: (Number(position.price) * Number(state.positionSize)).toFixed(2),
+        price: position.price,
+        side: position.tp > position.sl ? 'Buy' : 'Sell',
+        tp: position.tp,
+        sl: position.sl,
+      };
+    },
+    playChart(state, action: PayloadAction<{ index: number }>) {
+      if (!state.klinesFuture.length) {
+        if (state.position) {
+          const entryPrice = state.position.price;
+          const exitPrice = state.klines[state.klines.length - 1].close.toString();
+          const pnl =
+            (state.position.side === 'Buy' ? Number(exitPrice) - Number(entryPrice) : Number(entryPrice) - Number(exitPrice)) *
+            Number(state.position.qty);
+          const newTrade = {
+            symbol: state.symbol as string,
+            qty: state.position.qty,
+            price: entryPrice,
+            exitPrice: exitPrice,
+            side: state.position.side,
+            pnl: pnl.toString(),
+          };
+          state.trades = [newTrade, ...state.trades];
+          state.capital = state.capital + pnl;
+          state.position = undefined;
+        }
+        return;
+      }
+
+      const newBar = state.klinesFuture.splice(0, 1).pop() as CandlestickDataWithVolume;
+
+      if (state.position) {
+        const isTP = Number(state.position.tp) > newBar.low && Number(state.position.tp) < newBar.high;
+        const isSL = Number(state.position.sl) > newBar.low && Number(state.position.sl) < newBar.high;
+        if (isTP || isSL) {
+          const entryPrice = state.position.price;
+          const exitPrice = isTP ? state.position.tp : state.position.sl;
+          const pnl =
+            (state.position.side === 'Buy' ? Number(exitPrice) - Number(entryPrice) : Number(entryPrice) - Number(exitPrice)) *
+            Number(state.position.qty);
+          const newTrade = {
+            symbol: state.symbol as string,
+            qty: state.position.qty,
+            price: entryPrice,
+            exitPrice: exitPrice,
+            side: state.position.side,
+            pnl: pnl.toFixed(),
+          };
+          state.trades = [newTrade, ...state.trades];
+          state.capital = state.capital + pnl;
+          state.position = undefined;
+        }
+      }
+
+      state.klineUpdate = newBar;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -76,21 +159,82 @@ const gameSlice = createSlice({
         state.loading = 'idle';
       })
       .addCase(startGame.fulfilled, (state, action) => {
-        state.loading = 'idle';
         const { symbol, klines } = action.payload as { symbol: string; klines: CandlestickDataWithVolume[] };
         state.symbol = symbol;
-        state.klines = klines;
+        state.klines = klines.splice(0, 20) as CandlestickDataWithVolume[];
+        state.klinesFuture = [...klines];
+        state.trades = [];
+        state.capital = 1000;
+        state.position = undefined;
+        state.state = 'stopped';
+        state.positionSize = 1;
+
+        const lastPrice = state.klines[state.klines.length - 1].close;
+        state.chartLines = [
+          {
+            type: 'ENTRY',
+            price: lastPrice.toString(),
+            draggable: true,
+          },
+          {
+            type: 'TP',
+            price: (lastPrice + lastPrice * 0.05).toString(),
+            draggable: true,
+          },
+          {
+            type: 'SL',
+            price: (lastPrice - lastPrice * 0.05).toString(),
+            draggable: true,
+          },
+        ];
+        state.loading = 'idle';
       })
       .addCase(startGame.pending, (state) => {
         state.loading = 'pending';
       })
       .addCase(startGame.rejected, (state) => {
         state.loading = 'idle';
+      })
+      .addCase(skipChart.fulfilled, (state, action) => {
+        const { symbol, klines } = action.payload as { symbol: string; klines: CandlestickDataWithVolume[] };
+        state.symbol = symbol;
+        state.klines = klines.splice(0, 20) as CandlestickDataWithVolume[];
+        state.klinesFuture = [...klines];
+        state.state = 'stopped';
+        state.positionSize = 1;
+
+        const lastPrice = state.klines[state.klines.length - 1].close;
+        state.chartLines = [
+          {
+            type: 'ENTRY',
+            price: lastPrice.toString(),
+            draggable: true,
+          },
+          {
+            type: 'TP',
+            price: (lastPrice + lastPrice * 0.05).toString(),
+            draggable: true,
+          },
+          {
+            type: 'SL',
+            price: (lastPrice - lastPrice * 0.05).toString(),
+            draggable: true,
+          },
+        ];
+
+        state.loading = 'idle';
+      })
+      .addCase(skipChart.pending, (state) => {
+        state.loading = 'pending';
+      })
+      .addCase(skipChart.rejected, (state) => {
+        state.loading = 'idle';
       });
   },
 });
 
 // export const { updatePositionSize, resetChartLines, addChartLine, removeChartLine, updateChartLine } = gameSlice.actions;
+export const { addChartLine, removeChartLine, updateChartLine, playChart, openPosition } = gameSlice.actions;
 
 export const gameReducer = gameSlice.reducer;
 
@@ -111,8 +255,28 @@ export const startGame = createAsyncThunk<unknown, void, { state: RootState }>('
 
   const client = new RestClientV5();
   const klineResponse = await client.getKline({ category: 'linear', symbol: randomSymbol, interval });
+  const klines1 = klineResponse.result.list.map(mapKlineToCandleStickData).sort((a, b) => (a.time as number) - (b.time as number));
+  const end = Number(klines1[0].time) * 1000;
+  const klineResponse1 = await client.getKline({ category: 'linear', symbol: randomSymbol, interval, end: end });
+  const klines = [...klines1, ...klineResponse1.result.list.map(mapKlineToCandleStickData)].sort(
+    (a, b) => (a.time as number) - (b.time as number),
+  );
 
-  const klines = klineResponse.result.list.map(mapKlineToCandleStickData).sort((a, b) => (a.time as number) - (b.time as number));
+  return { symbol: randomSymbol, klines };
+});
+
+export const skipChart = createAsyncThunk<unknown, void, { state: RootState }>('game/skipchart', async (_, { getState }) => {
+  const { tickers, interval } = getState().game;
+  const randomSymbol = getRandomString(tickers.map((t) => t.symbol));
+
+  const client = new RestClientV5();
+  const klineResponse = await client.getKline({ category: 'linear', symbol: randomSymbol, interval });
+  const klines1 = klineResponse.result.list.map(mapKlineToCandleStickData).sort((a, b) => (a.time as number) - (b.time as number));
+  const end = Number(klines1[0].time) * 1000;
+  const klineResponse1 = await client.getKline({ category: 'linear', symbol: randomSymbol, interval, end: end });
+  const klines = [...klines1, ...klineResponse1.result.list.map(mapKlineToCandleStickData)].sort(
+    (a, b) => (a.time as number) - (b.time as number),
+  );
 
   return { symbol: randomSymbol, klines };
 });
@@ -122,8 +286,18 @@ export const selectIsLoading = (state: RootState) => state.game.loading !== 'idl
 export const selectErrors = (state: RootState) => state.game.errors;
 export const selectTickers = (state: RootState) => state.game.tickers;
 export const selectKlines = (state: RootState) => state.game.klines;
-export const selectTicker = (state: RootState) => state.game.tickers.find(t => t.symbol === state.game.symbol);
+export const selectklineUpdate = (state: RootState) => state.game.klineUpdate;
+export const selectTickerInfo = (state: RootState) => state.game.tickers.find((t) => t.symbol === state.game.symbol);
 export const selectInterval = (state: RootState) => state.game.interval;
+export const selectCapital = (state: RootState) => state.game.capital;
+export const selectTrades = (state: RootState) => state.game.trades;
+export const selectTradeCount = (state: RootState) => state.game.trades.length;
+export const selectCurrentPosition = (state: RootState) => state.game.position;
+export const selectChartLines = (state: RootState) => state.game.chartLines;
+export const selectPositionSize = (state: RootState) => state.game.positionSize;
+export const selectEntryPrice = (state: RootState) => (state.game.position ? state.game.position.price : selectCurrentPrice(state));
+export const selectCurrentPrice = (state: RootState) =>
+  state.game.klines.length ? state.game.klines[state.game.klines.length - 1].close : 0;
 
 // export const selectPositionSize = (state: RootState) => state.gameSlice.;
 // export const selectTakeProfits = (state: RootState) => state.tradeSetup.chartLines.filter((l) => l.type === 'TP');

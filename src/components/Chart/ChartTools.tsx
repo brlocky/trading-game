@@ -1,65 +1,80 @@
-import React from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { addChartLine, removeChartLine, selectLines } from '../../slices';
-import { selectCurrentPosition, selectTicker, selectTickerInfo } from '../../slices/symbolSlice';
+import { faForward, faStop } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import React, { useEffect, useRef, useState } from 'react';
 import Button from '../Forms/Button';
-import { formatPriceWithTickerInfo } from '../../utils/tradeUtils';
+import { useDispatch, useSelector } from 'react-redux';
+import { openPosition, playChart, selectChartLines, selectCurrentPosition, selectTrades, skipChart, startGame } from '../../slices';
 
 export const ChartTools: React.FC = () => {
-  const currentPosition = useSelector(selectCurrentPosition);
-  const tickerInfo = useSelector(selectTickerInfo);
-  const ticker = useSelector(selectTicker);
-  const lines = useSelector(selectLines);
-
+  const chartLines = useSelector(selectChartLines);
+  const position = useSelector(selectCurrentPosition);
+  const trades = useSelector(selectTrades);
   const dispatch = useDispatch();
 
-  if (!tickerInfo) return <></>;
+  const [intervalId, setIntervalId] = useState<number | undefined>();
+  const intervalRef = useRef<number>();
 
-  const calculateTPPrice = () => {
-    const fromPrice = Number(ticker?.lastPrice);
-    const tpPercentage = 1;
-    const diff = (fromPrice * tpPercentage) / 100;
-    const side = currentPosition ? currentPosition.side : 'Buy';
-    return formatPriceWithTickerInfo(side === 'Buy' ? fromPrice + diff : fromPrice - diff, tickerInfo);
-  };
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
-  const calculateSLPrice = () => {
-    const fromPrice = Number(ticker?.lastPrice);
-    const tpPercentage = 1;
-    const diff = (fromPrice * tpPercentage) / 100;
-    const side = currentPosition ? currentPosition.side : 'Buy';
-    return formatPriceWithTickerInfo(side === 'Buy' ? fromPrice - diff : fromPrice + diff, tickerInfo);
-  };
+  useEffect(() => {
+    intervalRef.current = intervalId;
+  }, [intervalId]);
 
-  const addTP = () => {
-    const index = lines.findIndex((o) => o.type === 'TP');
-    if (index !== -1) {
-      dispatch(removeChartLine({ index: index }));
-    } else {
-      dispatch(addChartLine({ type: 'TP', price: calculateTPPrice(), draggable: true }));
+  useEffect(() => {
+    console.log('New trade', trades);
+    if (trades.length) {
+      stopPlay();
     }
+  }, [trades]);
+
+  const newChart = () => {
+    dispatch(skipChart());
   };
 
-  const addSL = () => {
-    const index = lines.findIndex((o) => o.type === 'SL');
-    if (index !== -1) {
-      dispatch(removeChartLine({ index: index }));
-    } else {
-      dispatch(addChartLine({ type: 'SL', price: calculateSLPrice(), draggable: true }));
-    }
+  const startPlay = () => {
+    const id = setInterval(() => {
+      dispatch(playChart({ index: 1 }));
+    }, 10);
+    setIntervalId(id);
   };
 
-  const hasTP = lines.findIndex((o) => o.type === 'TP') !== -1;
-  const hasSL = lines.findIndex((o) => o.type === 'SL') !== -1;
+  const stopPlay = () => {
+    clearInterval(intervalId);
+    setIntervalId(undefined);
+  };
+
+  const tp = chartLines.find((l) => l.type === 'TP')?.price || '0';
+  const sl = chartLines.find((l) => l.type === 'SL')?.price || '0';
+  const price = chartLines.find((l) => l.type === 'ENTRY')?.price || '0';
+  const openTrade = () => {
+    dispatch(
+      openPosition({
+        position: { price, tp, sl },
+      }),
+    );
+  };
 
   return (
-    <div className="absolute left-2 top-2 z-10 flex gap-x-2 rounded-lg bg-gray-700 p-2">
-      <Button onClick={addTP} className="bg-green-200">
-        {hasTP ? '- TP' : '+ TP'}
-      </Button>
-      <Button onClick={addSL} className="bg-red-400">
-        {hasSL ? '- SL' : '+ SL'}
-      </Button>
+    <div className="absolute top-0 z-10 flex gap-x-2 p-2 w-full justify-center">
+      <div className="flex gap-x-2 rounded-lg bg-gray-700 p-2 ">
+        <Button className="bg-blue-200" onClick={newChart}>
+          Skip Chart
+        </Button>
+        {!position ? (
+          <Button className="bg-blue-200" onClick={openTrade}>
+            Open Trade
+          </Button>
+        ) : null}
+        <Button className="bg-green-200" onClick={intervalId ? stopPlay : startPlay}>
+          <FontAwesomeIcon icon={intervalId ? faStop : faForward} />
+        </Button>
+      </div>
     </div>
   );
 };

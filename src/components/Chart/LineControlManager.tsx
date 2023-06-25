@@ -1,9 +1,17 @@
 import { CustomPriceLineDraggedEventParams } from '@felipecsl/lightweight-charts';
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { selectCurrentPosition, selectEntryPrice, selectLines, selectPositionSize, selectTicker, updateChartLine } from '../../slices';
 import { calculateTargetPnL, formatCurrencyValue } from '../../utils/tradeUtils';
 import { IChartLine } from '../../types';
+import {
+  selectChartLines,
+  selectCurrentPosition,
+  selectCurrentPrice,
+  selectEntryPrice,
+  selectPositionSize,
+  selectTickerInfo,
+  updateChartLine,
+} from '../../slices';
 
 interface LineControlManagerProps {
   chartInstance: any;
@@ -16,12 +24,13 @@ const ENTRY = 'ENTRY';
 const SEPARATOR = ' > ';
 
 export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartInstance, seriesInstance }) => {
-  const ticker = useSelector(selectTicker);
+  const tickerInfo = useSelector(selectTickerInfo);
   const currentPosition = useSelector(selectCurrentPosition);
   const positionSize = useSelector(selectPositionSize);
 
-  const lines = useSelector(selectLines);
+  const chartLines = useSelector(selectChartLines);
   const entryPrice = useSelector(selectEntryPrice);
+  const currentPrice = useSelector(selectCurrentPrice);
 
   const chartLineRefs = useRef<any[]>([]);
   const linesRef = useRef<any>(undefined);
@@ -35,7 +44,7 @@ export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartIns
     setupChartLines();
     setIsLoading(false);
     chartInstance.subscribeCustomPriceLineDragged(priceLineHandler);
-    // Other necessary setup logic goes here
+    setupChartLines();
     return () => {
       setIsLoading(true);
       chartInstance.unsubscribeCustomPriceLineDragged(priceLineHandler);
@@ -43,15 +52,15 @@ export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartIns
   }, []);
 
   useEffect(() => {
-    linesRef.current = [...lines];
+    linesRef.current = [...chartLines];
     if (isLoading) return;
     setupChartLines();
-  }, [lines]);
+  }, [chartLines]);
 
   useEffect(() => {
     if (isLoading) return;
     updateChartLines();
-  }, [ticker, positionSize, currentPosition]);
+  }, [tickerInfo, positionSize, currentPosition]);
 
   const removeChartLines = () => {
     // Remove Lines
@@ -98,7 +107,7 @@ export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartIns
     removeChartLines();
 
     // createCharLines
-    lines.forEach((line, index) => {
+    chartLines.forEach((line, index) => {
       chartLineRefs.current.push(seriesInstance.createPriceLine(getLineConf(line, index)));
     });
 
@@ -106,14 +115,12 @@ export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartIns
   };
 
   const updateChartLines = () => {
-    if (!ticker?.lastPrice) return;
-    const coinAmount = currentPosition ? Number(currentPosition.size) : positionSize;
-    const currentPnL = currentPosition ? formatCurrencyValue(calculateTargetPnL(ticker.lastPrice, entryPrice, coinAmount)) : '';
+    const coinAmount = currentPosition ? Number(currentPosition.qty) : positionSize;
 
-    lines.forEach((l, index) => {
+    chartLines.forEach((l, index) => {
       const lineRef = chartLineRefs.current[index];
-
       if (l.type === 'ENTRY') {
+        const currentPnL = currentPosition ? formatCurrencyValue(calculateTargetPnL(currentPrice, entryPrice, coinAmount)) : '';
         lineRef.applyOptions({
           title: getLineTitle(l, ++index) + currentPnL,
           lineWidth: currentPosition ? 2 : 1,
