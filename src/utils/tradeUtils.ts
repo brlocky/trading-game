@@ -7,18 +7,18 @@ export const formatCurrencyValue = (amount: number | string, currency = 'USD') =
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency,
-  }).format(typedAmount);
+  }).format(typedAmount as number);
 };
 
 export const formatPriceWithTickerInfo = (value: string | number, tickerInfo: LinearInverseInstrumentInfoV5): string => {
-  const numericPrice = isNumber(value) ? value : Number(value);
+  const numericPrice = isNumber(value) ? value as number : Number(value);
   return numericPrice.toFixed(Number(tickerInfo.priceScale));
 };
 
 export const calculateTargetPnL = (target: number | string, price: number | string, positionSize: number| string): string => {
-  const typedTarget = isNumber(target) ? target : Number(target);
-  const typedPrice = isNumber(price) ? price : Number(price);
-  const typedPositionSize = isNumber(positionSize) ? positionSize : Number(positionSize);
+  const typedTarget = isNumber(target) ? target as number: Number(target);
+  const typedPrice = isNumber(price) ? price as number : Number(price);
+  const typedPositionSize = isNumber(positionSize) ? positionSize as number : Number(positionSize);
 
   return Math.abs((typedTarget - typedPrice) * typedPositionSize).toString();
 };

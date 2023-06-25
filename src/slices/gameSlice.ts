@@ -243,7 +243,8 @@ export const gameReducer = gameSlice.reducer;
 export const loadGameData = createAsyncThunk<LinearInverseInstrumentInfoV5[]>('game/loadGameData', async () => {
   const client = new RestClientV5();
   const tickersResponse = await client.getInstrumentsInfo({ category: 'linear' });
-  return tickersResponse.result.list.filter((t) => t.symbol.toLowerCase().endsWith('usdt')) as LinearInverseInstrumentInfoV5[];
+  const items = tickersResponse.result.list as LinearInverseInstrumentInfoV5[];
+  return items.filter((t) => t.symbol.toLowerCase().endsWith('usdt'));
 });
 
 function getRandomString(strings: string[]) {

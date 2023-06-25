@@ -6,6 +6,7 @@ import { GameInput } from './components/Game';
 import { loadGameData, selectIsLoading, selectRisk, selectTickers, startGame, updatePositionSize } from './slices';
 import { AppDispatch } from './store/store';
 import { ToastContainer } from 'react-toastify';
+import { Modal } from './components/Modal';
 
 const App = () => {
   const isLoading = useSelector(selectIsLoading);
@@ -32,8 +33,9 @@ const App = () => {
   }, [risk]);
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-slate-500 justify-center items-center relative">
+    <div className="flex flex-col w-full min-h-screen bg-slate-500 items-center">
       <ToastContainer />
+      <Modal open={true} header={'Modal'} >Ola</Modal>
       {!isLoading ? (
         <>
           <GameInput />

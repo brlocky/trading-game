@@ -3,7 +3,7 @@ import React, { PropsWithChildren, useEffect, useState } from 'react';
 interface ModalProps extends PropsWithChildren {
   open: boolean;
   header: string;
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 export const Modal: React.FC<ModalProps> = ({ open, header, children, onClose }) => {

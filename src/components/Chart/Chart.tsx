@@ -49,11 +49,15 @@ export const Chart: React.FC<Props> = (props) => {
   const apiClient = new RestClientV5();
 
   const handleResize = () => {
-    if (chartInstanceRef.current) {
-      chartInstanceRef.current.applyOptions({
-        width: chartContainerRef.current?.clientWidth || 0,
-      });
+    if (!chartInstanceRef.current) {
+      return;
     }
+    chartInstanceRef.current.applyOptions({
+      width: chartContainerRef.current?.clientWidth || 0,
+    });
+
+    console.log(chartContainerRef.current?.clientWidth);
+    console.log(chartContainerRef.current?.clientHeight);
   };
 
   const listenChartTimeScale = useCallback(
@@ -127,7 +131,7 @@ export const Chart: React.FC<Props> = (props) => {
         mode: CrosshairMode.Normal,
       },
       width: chartContainerRef.current.clientWidth,
-      height: 500,
+      height: window.innerHeight - 200,
     });
 
     newSeries.current = chartInstanceRef.current.addCandlestickSeries({
