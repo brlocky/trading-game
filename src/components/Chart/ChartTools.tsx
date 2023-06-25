@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import React, { useEffect, useRef, useState } from 'react';
 import Button from '../Forms/Button';
 import { useDispatch, useSelector } from 'react-redux';
-import { openPosition, playChart, selectChartLines, selectCurrentPosition, selectTrades, skipChart, startGame } from '../../slices';
+import { openPosition, playChart, selectChartLines, selectCurrentPosition, selectTrades, setupTrade, skipChart, startGame } from '../../slices';
 
 export const ChartTools: React.FC = () => {
   const chartLines = useSelector(selectChartLines);
@@ -33,14 +33,13 @@ export const ChartTools: React.FC = () => {
     }
   }, [trades]);
 
-  const newChart = () => {
-    dispatch(skipChart());
-  };
-
   const startPlay = () => {
-    const id = setInterval(() => {
-      dispatch(playChart({ index: 1 }));
-    }, 10);
+    const id = setInterval(
+      () => {
+        dispatch(playChart());
+      },
+      position ? 10 : 250,
+    );
     setIntervalId(id);
   };
 
@@ -49,26 +48,31 @@ export const ChartTools: React.FC = () => {
     setIntervalId(undefined);
   };
 
-  const tp = chartLines.find((l) => l.type === 'TP')?.price || '0';
-  const sl = chartLines.find((l) => l.type === 'SL')?.price || '0';
-  const price = chartLines.find((l) => l.type === 'ENTRY')?.price || '0';
   const openTrade = () => {
-    dispatch(
-      openPosition({
-        position: { price, tp, sl },
-      }),
-    );
+    if (!chartLines.length) {
+      return;
+    }
+    const tp = chartLines.find((l) => l.type === 'TP')?.price || '0';
+    const sl = chartLines.find((l) => l.type === 'SL')?.price || '0';
+    const price = chartLines.find((l) => l.type === 'ENTRY')?.price || '0';
+    dispatch(openPosition({ position: { price, tp, sl } }));
+  };
+
+  const addLines = () => {
+    dispatch(setupTrade())
   };
 
   return (
     <div className="absolute top-0 z-10 flex gap-x-2 p-2 w-full justify-center">
       <div className="flex gap-x-2 rounded-lg bg-gray-700 p-2 ">
-        <Button className="bg-blue-200" onClick={newChart}>
-          Skip Chart
-        </Button>
-        {!position ? (
+        {!position && chartLines.length ? (
           <Button className="bg-blue-200" onClick={openTrade}>
             Open Trade
+          </Button>
+        ) : null}
+        {!chartLines.length ? (
+          <Button className="bg-blue-200" onClick={addLines}>
+            Setup Trade
           </Button>
         ) : null}
         <Button className="bg-green-200" onClick={intervalId ? stopPlay : startPlay}>

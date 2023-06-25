@@ -61,7 +61,6 @@ export const Chart: React.FC<Props> = (props) => {
   const listenChartTimeScale = useCallback(
     debounce(() => {
       const logicalRange = timeScaleRef.current.getVisibleLogicalRange();
-      console.log(logicalRange);
       if (logicalRange !== null) {
         const barsInfo = newSeries.current.barsInLogicalRange(logicalRange);
         if (barsInfo !== null && barsInfo.barsBefore < 10) {
@@ -98,11 +97,8 @@ export const Chart: React.FC<Props> = (props) => {
 
   const initChart = () => {
     if (!chartContainerRef.current) {
-      console.error('Chart Container not defined');
       return;
     }
-
-    console.log('initChart chart');
 
     chartInstanceRef.current = createChart(chartContainerRef.current, {
       timeScale: {
@@ -139,7 +135,6 @@ export const Chart: React.FC<Props> = (props) => {
     });
 
     const allKlines = JSON.parse(JSON.stringify(klines));
-    console.log('allKlines', allKlines);
     setLoadedCandles(allKlines);
     newSeries.current.setData(allKlines);
     newVolumeSeries.current = chartInstanceRef.current.addHistogramSeries({
@@ -164,14 +159,10 @@ export const Chart: React.FC<Props> = (props) => {
     timeScaleRef.current = chartInstanceRef.current.timeScale();
     timeScaleRef.current.subscribeVisibleLogicalRangeChange(listenChartTimeScale);
     timeScaleRef.current.fitContent();
-
-    console.log('initChart chart - ok');
   };
 
   const destroyChart = () => {
-    console.log('Destroy chart');
     if (!chartInstanceRef.current) {
-      console.log('Destroy chart - fail');
       return;
     }
 
@@ -181,7 +172,6 @@ export const Chart: React.FC<Props> = (props) => {
     chartInstanceRef.current.remove();
     chartInstanceRef.current = null;
     timeScaleRef.current = null;
-    console.log('Destroy chart - ok');
   };
 
   // Handle Resize
@@ -209,7 +199,6 @@ export const Chart: React.FC<Props> = (props) => {
   // Update Kline
   useEffect(() => {
     if (isLoading || !kline) {
-      console.log('skipkline', isLoading, !!kline);
       return;
     }
     const parsedKline = JSON.parse(JSON.stringify(kline)) as CandlestickDataWithVolume;

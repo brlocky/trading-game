@@ -9,8 +9,10 @@ import {
   selectCurrentPrice,
   selectEntryPrice,
   selectPositionSize,
+  selectRisk,
   selectTickerInfo,
   updateChartLine,
+  updatePositionSize,
 } from '../../slices';
 
 interface LineControlManagerProps {
@@ -31,6 +33,7 @@ export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartIns
   const chartLines = useSelector(selectChartLines);
   const entryPrice = useSelector(selectEntryPrice);
   const currentPrice = useSelector(selectCurrentPrice);
+  const risk = useSelector(selectRisk);
 
   const chartLineRefs = useRef<any[]>([]);
   const linesRef = useRef<any>(undefined);
@@ -143,6 +146,7 @@ export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartIns
 
     if (title.startsWith(TP) || title.startsWith(SL) || title.startsWith(ENTRY)) {
       dispatch(updateChartLine({ index: extractedIndex, line: { ...linesRef.current[extractedIndex], price: formatedPrice } }));
+      dispatch(updatePositionSize());
     }
   };
 

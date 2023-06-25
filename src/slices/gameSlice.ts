@@ -3,8 +3,7 @@ import { KlineIntervalV3, LinearInverseInstrumentInfoV5 } from 'bybit-api';
 import { RestClientV5 } from 'bybit-api/lib/rest-client-v5';
 import { mapKlineToCandleStickData } from '../mappers';
 import { RootState } from '../store/store';
-import { CandlestickDataWithVolume, IChartLine } from '../types';
-import { useDispatch } from 'react-redux';
+import { CandlestickDataWithVolume, IChartLine, IGameRisk, IGameTradeSide } from '../types';
 
 type gameState = 'stopped' | 'playing';
 
@@ -13,7 +12,7 @@ interface IGamePosition {
   qty: string;
   value: string;
   price: string;
-  side: 'Buy' | 'Sell';
+  side: IGameTradeSide;
   tp: string;
   sl: string;
 }
@@ -29,7 +28,7 @@ interface IGameTrade {
   qty: string;
   price: string;
   exitPrice: string;
-  side: 'Buy' | 'Sell';
+  side: IGameTradeSide;
   pnl: string;
 }
 
@@ -43,6 +42,7 @@ interface IGame {
   klineUpdate: CandlestickDataWithVolume | undefined;
   trades: IGameTrade[];
   capital: number;
+  risk: IGameRisk;
   position: IGamePosition | undefined;
   state: gameState;
   positionSize: number;
@@ -60,6 +60,7 @@ const initialState: IGame = {
   klinesFuture: [],
   trades: [],
   capital: 0,
+  risk: 1,
   position: undefined,
   state: 'stopped',
   positionSize: 1,
@@ -71,9 +72,6 @@ const gameSlice = createSlice({
   name: 'game',
   initialState,
   reducers: {
-    // updatePositionSize(state, action: PayloadAction<number>) {
-    //   state.positionSize = action.payload;
-    // },
     addChartLine(state, action: PayloadAction<IChartLine>) {
       state.chartLines = [...state.chartLines, { ...action.payload }];
     },
@@ -82,6 +80,9 @@ const gameSlice = createSlice({
     },
     removeChartLine(state, action: PayloadAction<{ index: number }>) {
       state.chartLines.splice(action.payload.index, 1);
+    },
+    updateRisk(state, action: PayloadAction<IGameRisk>) {
+      state.risk = action.payload;
     },
     openPosition(state, action: PayloadAction<{ position: IGameNewPosition }>) {
       const { position } = action.payload;
@@ -95,7 +96,42 @@ const gameSlice = createSlice({
         sl: position.sl,
       };
     },
-    playChart(state, action: PayloadAction<{ index: number }>) {
+    setupTrade(state) {
+      const lastPrice = state.klines[state.klines.length - 1].close;
+      const tp = lastPrice + lastPrice * 0.05;
+      const sl = lastPrice - lastPrice * 0.05;
+      state.chartLines = [
+        {
+          type: 'ENTRY',
+          price: lastPrice.toString(),
+          draggable: true,
+        },
+        {
+          type: 'TP',
+          price: tp.toString(),
+          draggable: true,
+        },
+        {
+          type: 'SL',
+          price: sl.toString(),
+          draggable: true,
+        },
+      ];
+
+      const riskValue = state.capital * (state.risk / 100);
+      state.positionSize = riskValue / (lastPrice - sl);
+    },
+    updatePositionSize(state) {
+      if (!state.chartLines.length) {
+        return;
+      }
+      const entry = Number(state.chartLines.find((l) => l.type === 'ENTRY')?.price);
+      const sl = Number(state.chartLines.find((l) => l.type === 'SL')?.price);
+
+      const riskValue = state.capital * (state.risk / 100);
+      state.positionSize = riskValue / (entry - sl);
+    },
+    playChart(state) {
       if (!state.klinesFuture.length) {
         if (state.position) {
           const entryPrice = state.position.price;
@@ -114,6 +150,7 @@ const gameSlice = createSlice({
           state.trades = [newTrade, ...state.trades];
           state.capital = state.capital + pnl;
           state.position = undefined;
+          state.chartLines = [];
         }
         return;
       }
@@ -140,6 +177,7 @@ const gameSlice = createSlice({
           state.trades = [newTrade, ...state.trades];
           state.capital = state.capital + pnl;
           state.position = undefined;
+          state.chartLines = [];
         }
       }
 
@@ -168,26 +206,8 @@ const gameSlice = createSlice({
         state.position = undefined;
         state.state = 'stopped';
         state.positionSize = 1;
-
-        const lastPrice = state.klines[state.klines.length - 1].close;
-        state.chartLines = [
-          {
-            type: 'ENTRY',
-            price: lastPrice.toString(),
-            draggable: true,
-          },
-          {
-            type: 'TP',
-            price: (lastPrice + lastPrice * 0.05).toString(),
-            draggable: true,
-          },
-          {
-            type: 'SL',
-            price: (lastPrice - lastPrice * 0.05).toString(),
-            draggable: true,
-          },
-        ];
         state.loading = 'idle';
+        state.chartLines = [];
       })
       .addCase(startGame.pending, (state) => {
         state.loading = 'pending';
@@ -202,25 +222,7 @@ const gameSlice = createSlice({
         state.klinesFuture = [...klines];
         state.state = 'stopped';
         state.positionSize = 1;
-
-        const lastPrice = state.klines[state.klines.length - 1].close;
-        state.chartLines = [
-          {
-            type: 'ENTRY',
-            price: lastPrice.toString(),
-            draggable: true,
-          },
-          {
-            type: 'TP',
-            price: (lastPrice + lastPrice * 0.05).toString(),
-            draggable: true,
-          },
-          {
-            type: 'SL',
-            price: (lastPrice - lastPrice * 0.05).toString(),
-            draggable: true,
-          },
-        ];
+        state.chartLines = [];
 
         state.loading = 'idle';
       })
@@ -234,11 +236,11 @@ const gameSlice = createSlice({
 });
 
 // export const { updatePositionSize, resetChartLines, addChartLine, removeChartLine, updateChartLine } = gameSlice.actions;
-export const { addChartLine, removeChartLine, updateChartLine, playChart, openPosition } = gameSlice.actions;
+export const { addChartLine, removeChartLine, updateChartLine, playChart, openPosition, updateRisk, setupTrade, updatePositionSize } = gameSlice.actions;
 
 export const gameReducer = gameSlice.reducer;
 
-export const loadGameData = createAsyncThunk('game/load', async () => {
+export const loadGameData = createAsyncThunk('game/loadGameData', async () => {
   const client = new RestClientV5();
   const tickersResponse = await client.getInstrumentsInfo({ category: 'linear' });
   return tickersResponse.result.list.filter((t) => t.symbol.toLowerCase().endsWith('usdt')) as LinearInverseInstrumentInfoV5[];
@@ -290,6 +292,7 @@ export const selectklineUpdate = (state: RootState) => state.game.klineUpdate;
 export const selectTickerInfo = (state: RootState) => state.game.tickers.find((t) => t.symbol === state.game.symbol);
 export const selectInterval = (state: RootState) => state.game.interval;
 export const selectCapital = (state: RootState) => state.game.capital;
+export const selectRisk = (state: RootState) => state.game.risk;
 export const selectTrades = (state: RootState) => state.game.trades;
 export const selectTradeCount = (state: RootState) => state.game.trades.length;
 export const selectCurrentPosition = (state: RootState) => state.game.position;
