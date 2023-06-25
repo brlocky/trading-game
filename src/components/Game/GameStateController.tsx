@@ -68,7 +68,7 @@ export const GameStateController = () => {
   const bgColor =
     (gameState === 'trade-end' || gameState === 'gameover') && lastTrade ? (Number(lastTrade.pnl) > 0 ? 'bg-green-200' : 'bg-red-200') : '';
   return (
-    <Modal open={visible} header={'Title'}>
+    <Modal open={visible}>
       <div className={`flex flex-col gap-x-5 gap-y-10 grow p-10 w-96 h-96 justify-between items-center rounded-2xl ${bgColor}`}>
         <div className="flex flex-col gap-y-2">{renderContent()}</div>
         <div>
