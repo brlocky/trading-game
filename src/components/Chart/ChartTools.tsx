@@ -2,18 +2,29 @@ import { faForward, faStop } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { openPosition, playChart, selectChartLines, selectCurrentPosition, selectGameState, setupTrade } from '../../slices';
+import {
+  loadChartFuture,
+  openPosition,
+  playChart,
+  selectChartLines,
+  selectCurrentPosition,
+  selectGameState,
+  selectKlines2End,
+  setupTrade,
+} from '../../slices';
 import { AppDispatch } from '../../store/store';
 import Button from '../Forms/Button';
 
 export const ChartTools: React.FC = () => {
   const chartLines = useSelector(selectChartLines);
+  const klines2End = useSelector(selectKlines2End);
   const position = useSelector(selectCurrentPosition);
   const gameState = useSelector(selectGameState);
   const dispatch = useDispatch<AppDispatch>();
 
   const [intervalId, setIntervalId] = useState<number | undefined>();
   const intervalRef = useRef<number>();
+  const klines2EndRef = useRef<number>();
 
   useEffect(() => {
     return () => {
@@ -26,6 +37,10 @@ export const ChartTools: React.FC = () => {
   useEffect(() => {
     intervalRef.current = intervalId;
   }, [intervalId]);
+
+  useEffect(() => {
+    klines2EndRef.current = klines2End;
+  }, [klines2End]);
 
   useEffect(() => {
     if (position) {
@@ -44,16 +59,20 @@ export const ChartTools: React.FC = () => {
         stopPlay();
         break;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState]);
 
   const startPlay = () => {
     if (intervalId) return;
     const id = setInterval(
       () => {
+        if (klines2EndRef.current && klines2EndRef.current === 100) {
+          dispatch(loadChartFuture());
+        }
+
         dispatch(playChart());
       },
-      position ? 10 : 250,
+      position ? 50 : 250,
     );
     setIntervalId(id);
   };

@@ -1,4 +1,11 @@
-import { CreatePriceLineOptions, CustomPriceLineDraggedEventParams, IChartApi, IPriceLine, ISeriesApi, LineWidth } from '@felipecsl/lightweight-charts';
+import {
+  CreatePriceLineOptions,
+  CustomPriceLineDraggedEventParams,
+  IChartApi,
+  IPriceLine,
+  ISeriesApi,
+  LineWidth,
+} from '@felipecsl/lightweight-charts';
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -79,7 +86,7 @@ export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartIns
     return `${l.type} ${index}${SEPARATOR}`;
   };
 
-  const getLineConf = (l: IChartLine, index: number):CreatePriceLineOptions => {
+  const getLineConf = (l: IChartLine, index: number): CreatePriceLineOptions => {
     const sharedConf = {
       title: getLineTitle(l, index),
       price: Number(l.price),
@@ -134,6 +141,7 @@ export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartIns
         lineRef.applyOptions({
           title: getLineTitle(l, ++index) + formatCurrencyValue(calculateTargetPnL(l.price, entryPrice, l.qty || coinAmount)),
           lineWidth: currentPosition ? 2 : 1,
+          draggable: currentPosition ? false : true,
         });
       }
     });
@@ -145,7 +153,7 @@ export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartIns
     const formatedPrice: string = chartInstance.priceScale('right').formatPrice(price, 0);
     const extractedIndex = Number(title.match(/(?:TP|SL|ENTRY) (\d+)(?: > )/)?.[1]) - 1;
 
-    if (title.startsWith(TP) || title.startsWith(SL) || title.startsWith(ENTRY)) {
+    if (Number(formatedPrice) > 0 && (title.startsWith(TP) || title.startsWith(SL) || title.startsWith(ENTRY))) {
       dispatch(updateChartLine({ index: extractedIndex, line: { ...linesRef.current[extractedIndex], price: formatedPrice } }));
       dispatch(updatePositionSize());
     }

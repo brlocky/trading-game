@@ -64,7 +64,7 @@ const initialState: IGame = {
   gameState: 'start',
   positionSize: 0,
   chartLines: [],
-  interval: '60',
+  interval: '240',
 };
 
 const gameSlice = createSlice({
@@ -158,8 +158,6 @@ const gameSlice = createSlice({
         } else {
           state.gameState = 'symbol-end';
         }
-
-        state.chartLines = [];
         return;
       }
 
@@ -187,7 +185,6 @@ const gameSlice = createSlice({
           state.trades = [...state.trades, newTrade];
           state.capital = state.capital + pnl;
           state.position = undefined;
-          state.chartLines = [];
           state.gameState = 'trade-end';
 
           if (state.trades.length >= MAX_TRADES) {
@@ -215,7 +212,7 @@ const gameSlice = createSlice({
         const { symbol, klines } = action.payload as { symbol: string; klines: CandlestickDataWithVolume[] };
 
         state.symbol = symbol;
-        state.klines = klines.splice(0, 20) as CandlestickDataWithVolume[];
+        state.klines = klines.splice(0, 200) as CandlestickDataWithVolume[];
         state.klinesFuture = [...klines];
         state.trades = [];
         state.capital = INITIAL_CAPITAL;
@@ -234,7 +231,7 @@ const gameSlice = createSlice({
       .addCase(skipChart.fulfilled, (state, action) => {
         const { symbol, klines } = action.payload as { symbol: string; klines: CandlestickDataWithVolume[] };
         state.symbol = symbol;
-        state.klines = klines.splice(0, 20) as CandlestickDataWithVolume[];
+        state.klines = klines.splice(0, 200) as CandlestickDataWithVolume[];
         state.klinesFuture = [...klines];
         state.chartLines = [];
         state.gameState = 'start';
@@ -250,6 +247,19 @@ const gameSlice = createSlice({
       .addCase(loadChartHistory.fulfilled, (state, action) => {
         const allData = [...action.payload, ...state.klines];
         state.klines = allData
+          .filter((item, index) => {
+            return (
+              index ===
+              allData.findIndex((t) => {
+                return t.time === item.time;
+              })
+            );
+          })
+          .sort((a, b) => (a.time as number) - (b.time as number));
+      })
+      .addCase(loadChartFuture.fulfilled, (state, action) => {
+        const allData = [...state.klinesFuture, ...action.payload];
+        state.klinesFuture = allData
           .filter((item, index) => {
             return (
               index ===
@@ -297,7 +307,21 @@ export const skipChart = createAsyncThunk<unknown, void, { state: RootState }>('
 
 const prepareGameChartData = async (symbol: string, interval: KlineIntervalV3) => {
   const client = new RestClientV5();
-  const klineResponse = await client.getKline({ category: 'linear', symbol: symbol, interval });
+  const ageTestResult = await client.getKline({ category: 'linear', symbol: symbol, interval: 'W' });
+
+  const ageKlines = ageTestResult.result.list.sort((a, b) => Number(a[0]) - Number(b[0]));
+
+  // remove the last ones from symbols with history, so that we can play theses ones before present date
+  if (ageKlines.length > 3) {
+    ageKlines.pop();
+    ageKlines.pop();
+  }
+
+  // Random Start Time
+  const endTime = getRandomString(ageKlines.map((k) => k[0]));
+
+  // Load Data
+  const klineResponse = await client.getKline({ category: 'linear', symbol: symbol, interval, end: Number(endTime) });
   const klines1 = klineResponse.result.list.map(mapKlineToCandleStickData).sort((a, b) => (a.time as number) - (b.time as number));
   const end = Number(klines1[0].time) * 1000;
   const klineResponse1 = await client.getKline({ category: 'linear', symbol: symbol, interval, end: end });
@@ -325,12 +349,33 @@ export const loadChartHistory = createAsyncThunk<CandlestickDataWithVolume[], nu
   },
 );
 
+export const loadChartFuture = createAsyncThunk<CandlestickDataWithVolume[], void, { state: RootState }>(
+  'game/loadChartFuture',
+  async (_, { getState }) => {
+    const { symbol, interval, klinesFuture } = getState().game;
+
+    if (!klinesFuture.length) {
+      return [];
+    }
+    const client = new RestClientV5();
+    const historyKlines = await client.getKline({
+      category: 'linear',
+      symbol: symbol as string,
+      interval: interval,
+      start: Number(klinesFuture[klinesFuture.length - 1].time) * 1000,
+    });
+
+    return historyKlines.result.list.map(mapKlineToCandleStickData).sort((a, b) => (a.time as number) - (b.time as number));
+  },
+);
+
 // Other code such as selectors can use the imported `RootState` type
 export const selectIsLoading = (state: RootState) => state.game.loading !== 'idle' || !state.game.klines.length;
 export const selectGameState = (state: RootState) => state.game.gameState;
 export const selectErrors = (state: RootState) => state.game.errors;
 export const selectTickers = (state: RootState) => state.game.tickers;
 export const selectKlines = (state: RootState) => state.game.klines;
+export const selectKlines2End = (state: RootState) => state.game.klinesFuture.length;
 export const selectTickerInfo = (state: RootState) => state.game.tickers.find((t) => t.symbol === state.game.symbol);
 export const selectInterval = (state: RootState) => state.game.interval;
 export const selectCapital = (state: RootState) => state.game.capital;
