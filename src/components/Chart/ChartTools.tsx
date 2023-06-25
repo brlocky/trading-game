@@ -24,7 +24,6 @@ export const ChartTools: React.FC = () => {
 
   const [intervalId, setIntervalId] = useState<number | undefined>();
   const intervalRef = useRef<number>();
-  const klines2EndRef = useRef<number>();
 
   useEffect(() => {
     return () => {
@@ -39,7 +38,8 @@ export const ChartTools: React.FC = () => {
   }, [intervalId]);
 
   useEffect(() => {
-    klines2EndRef.current = klines2End;
+    if (klines2End === 50) dispatch(loadChartFuture());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [klines2End]);
 
   useEffect(() => {
@@ -66,11 +66,7 @@ export const ChartTools: React.FC = () => {
     if (intervalId) return;
     const id = setInterval(
       () => {
-        if (klines2EndRef.current && (klines2EndRef.current === 100 || klines2EndRef.current === 60)) {
-          dispatch(loadChartFuture());
-        } else {
-          dispatch(playChart());
-        }
+        dispatch(playChart());
       },
       position ? 25 : 250,
     );

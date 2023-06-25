@@ -7,6 +7,7 @@ import { CandlestickDataWithVolume, IChartLine, GameRisk, GameTradeSide, GameSta
 
 const MAX_TRADES = 5;
 const INITIAL_CAPITAL = 1000;
+const INTERVAL = '30';
 
 interface IGamePosition {
   symbol: string;
@@ -64,7 +65,7 @@ const initialState: IGame = {
   gameState: 'start',
   positionSize: 0,
   chartLines: [],
-  interval: '240',
+  interval: INTERVAL,
 };
 
 const gameSlice = createSlice({
