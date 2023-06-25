@@ -1,11 +1,10 @@
 import { ColorType, CrosshairMode, IChartApi, ISeriesApi, ITimeScaleApi, createChart } from '@felipecsl/lightweight-charts';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { CandlestickDataWithVolume } from '../../types';
-import { selectInterval, selectKlines, selectTickerInfo, selectklineUpdate } from '../../slices';
-import { mapKlineToCandleStickData } from '../../mappers';
-import { RestClientV5 } from 'bybit-api/lib/rest-client-v5';
 import { debounce } from 'lodash';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { loadChartHistory, selectKlines, selectTickerInfo } from '../../slices';
+import { AppDispatch } from '../../store/store';
+import { CandlestickDataWithVolume } from '../../types';
 import { ChartTools } from './ChartTools';
 import { LineControlManager } from './LineControlManager';
 
@@ -31,7 +30,6 @@ export const Chart: React.FC<Props> = (props) => {
   } = props;
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [loadedCandles, setLoadedCandles] = useState<CandlestickDataWithVolume[]>([]);
   const [loadedChuncks, setLoadedChuncks] = useState<string[]>([]);
 
   const newSeries = useRef<ISeriesApi<'Candlestick'> | null>(null);
@@ -39,14 +37,12 @@ export const Chart: React.FC<Props> = (props) => {
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const chartInstanceRef = useRef<IChartApi | null>(null);
   const timeScaleRef = useRef<ITimeScaleApi | null>(null);
-  const loadedCandlesRef = useRef<CandlestickDataWithVolume[]>([]);
   const loadedChuncksRef = useRef<string[]>([]);
 
   const klines = useSelector(selectKlines);
-  const kline = useSelector(selectklineUpdate);
   const tickerInfo = useSelector(selectTickerInfo);
-  const interval = useSelector(selectInterval);
-  const apiClient = new RestClientV5();
+
+  const dispatch = useDispatch<AppDispatch>();
 
   const handleResize = () => {
     if (!chartInstanceRef.current) {
@@ -79,27 +75,8 @@ export const Chart: React.FC<Props> = (props) => {
           return;
         }
         setLoadedChuncks([...loadedChuncksRef.current, barsInfo.from as string]);
-        apiClient
-          .getKline({
-            category: 'linear',
-            symbol: tickerInfo?.symbol as string,
-            interval: interval,
-            end: Number(barsInfo.from) * 1000,
-          })
-          .then((r) => {
-            const candleStickData = r.result.list.map(mapKlineToCandleStickData).sort((a, b) => (a.time as number) - (b.time as number));
-            const allData = [...candleStickData, ...loadedCandlesRef.current].sort((a, b) => (a.time as number) - (b.time as number));
-            const uniqueArr = allData.filter((item, index) => {
-              return (
-                index ===
-                allData.findIndex((t) => {
-                  return t.time === item.time;
-                })
-              );
-            });
 
-            setLoadedCandles(uniqueArr);
-          });
+        dispatch(loadChartHistory(Number(barsInfo.from) * 1000));
       }
     }
   }, 50);
@@ -143,7 +120,6 @@ export const Chart: React.FC<Props> = (props) => {
     });
 
     const allKlines = JSON.parse(JSON.stringify(klines));
-    setLoadedCandles(allKlines);
     newSeries.current.setData(allKlines);
     newVolumeSeries.current = chartInstanceRef.current.addHistogramSeries({
       priceFormat: {
@@ -182,52 +158,55 @@ export const Chart: React.FC<Props> = (props) => {
     timeScaleRef.current = null;
   };
 
+  const updateChartData = (candles: CandlestickDataWithVolume[]) => {
+    if (isLoading || !newSeries.current || !newVolumeSeries.current) return;
+
+    newSeries.current.setData(JSON.parse(JSON.stringify(candles)));
+    const volumeData = candles.map((d: CandlestickDataWithVolume) => {
+      return { time: d.time, value: d.volume, color: volumeColor };
+    });
+    newVolumeSeries.current.setData(volumeData);
+  };
+
   // Handle Resize
   useEffect(() => {
+    console.log('init chart');
+    setIsLoading(true);
+    initChart();
+    setIsLoading(false);
+
     window.addEventListener('resize', handleResize);
     return () => {
+      setIsLoading(true);
+      destroyChart();
       window.removeEventListener('resize', handleResize);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Build Chart
   useEffect(() => {
-    setIsLoading(true);
-    if (!klines.length) return;
-    initChart();
-
-    setIsLoading(false);
-
-    return () => {
-      setIsLoading(true);
-      destroyChart();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [klines]);
-
-  // Update Kline
-  useEffect(() => {
-    if (isLoading || !kline || !newSeries.current || !newVolumeSeries.current) {
+    if (!klines.length) {
       return;
     }
-    const parsedKline = JSON.parse(JSON.stringify(kline)) as CandlestickDataWithVolume;
-    newSeries.current.update(parsedKline);
-    newVolumeSeries.current.update({ time: kline.time, value: kline.volume, color: 'pink' });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kline]);
 
-  // Update loaded candles
-  useEffect(() => {
-    loadedCandlesRef.current = loadedCandles;
-    if (isLoading || !newSeries.current || !newVolumeSeries.current) return;
+    updateChartData(klines);
+    // if (klines.length && chartInstanceRef.current) {
+    //   console.log('update chart');
+    //   updateChartData(klines);
+    // } else {
+    //   console.log('init chart');
+    //   setIsLoading(true);
+    //   initChart();
+    //   setIsLoading(false);
+    // }
 
-    newSeries.current.setData(loadedCandles);
-    const volumeData = loadedCandles.map((d: CandlestickDataWithVolume) => {
-      return { time: d.time, value: d.volume, color: volumeColor };
-    });
-    newVolumeSeries.current.setData(volumeData);
+    // return () => {
+    //   setIsLoading(true);
+    //   destroyChart();
+    // };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadedCandles]);
+  }, [klines]);
 
   useEffect(() => {
     loadedChuncksRef.current = loadedChuncks;

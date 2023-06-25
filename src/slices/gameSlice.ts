@@ -39,7 +39,6 @@ interface IGame {
   tickers: LinearInverseInstrumentInfoV5[];
   klines: CandlestickDataWithVolume[];
   klinesFuture: CandlestickDataWithVolume[];
-  klineUpdate: CandlestickDataWithVolume | undefined;
   trades: IGameTrade[];
   capital: number;
   risk: IGameRisk;
@@ -56,7 +55,6 @@ const initialState: IGame = {
   symbol: undefined,
   tickers: [],
   klines: [],
-  klineUpdate: undefined,
   klinesFuture: [],
   trades: [],
   capital: 0,
@@ -181,7 +179,7 @@ const gameSlice = createSlice({
         }
       }
 
-      state.klineUpdate = newBar;
+      state.klines = [...state.klines, newBar];
     },
   },
   extraReducers: (builder) => {
@@ -231,12 +229,26 @@ const gameSlice = createSlice({
       })
       .addCase(skipChart.rejected, (state) => {
         state.loading = 'idle';
+      })
+      .addCase(loadChartHistory.fulfilled, (state, action) => {
+        const allData = [...action.payload, ...state.klines];
+        state.klines = allData
+          .filter((item, index) => {
+            return (
+              index ===
+              allData.findIndex((t) => {
+                return t.time === item.time;
+              })
+            );
+          })
+          .sort((a, b) => (a.time as number) - (b.time as number));
       });
   },
 });
 
 // export const { updatePositionSize, resetChartLines, addChartLine, removeChartLine, updateChartLine } = gameSlice.actions;
-export const { addChartLine, removeChartLine, updateChartLine, playChart, openPosition, updateRisk, setupTrade, updatePositionSize } = gameSlice.actions;
+export const { addChartLine, removeChartLine, updateChartLine, playChart, openPosition, updateRisk, setupTrade, updatePositionSize } =
+  gameSlice.actions;
 
 export const gameReducer = gameSlice.reducer;
 
@@ -284,12 +296,28 @@ export const skipChart = createAsyncThunk<unknown, void, { state: RootState }>('
   return { symbol: randomSymbol, klines };
 });
 
+export const loadChartHistory = createAsyncThunk<CandlestickDataWithVolume[], number, { state: RootState }>(
+  'game/loadChartHistory',
+  async (end, { getState }) => {
+    const { symbol, interval } = getState().game;
+
+    const client = new RestClientV5();
+    const historyKlines = await client.getKline({
+      category: 'linear',
+      symbol: symbol as string,
+      interval: interval,
+      end: end,
+    });
+
+    return historyKlines.result.list.map(mapKlineToCandleStickData).sort((a, b) => (a.time as number) - (b.time as number));
+  },
+);
+
 // Other code such as selectors can use the imported `RootState` type
 export const selectIsLoading = (state: RootState) => state.game.loading !== 'idle' || !state.game.klines.length;
 export const selectErrors = (state: RootState) => state.game.errors;
 export const selectTickers = (state: RootState) => state.game.tickers;
 export const selectKlines = (state: RootState) => state.game.klines;
-export const selectklineUpdate = (state: RootState) => state.game.klineUpdate;
 export const selectTickerInfo = (state: RootState) => state.game.tickers.find((t) => t.symbol === state.game.symbol);
 export const selectInterval = (state: RootState) => state.game.interval;
 export const selectCapital = (state: RootState) => state.game.capital;

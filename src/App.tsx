@@ -35,7 +35,7 @@ const App = () => {
   return (
     <div className="flex flex-col w-full min-h-screen bg-slate-500 items-center">
       <ToastContainer />
-      <Modal open={true} header={'Modal'} >Ola</Modal>
+      {/* <Modal open={true} header={'Modal'} >Ola</Modal> */}
       {!isLoading ? (
         <>
           <GameInput />
