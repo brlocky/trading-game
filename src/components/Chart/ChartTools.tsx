@@ -1,10 +1,10 @@
 import { faForward, faStop } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import React, { useEffect, useRef, useState } from 'react';
-import Button from '../Forms/Button';
 import { useDispatch, useSelector } from 'react-redux';
-import { openPosition, playChart, selectChartLines, selectCurrentPosition, selectTrades, setupTrade, skipChart, startGame } from '../../slices';
+import { openPosition, playChart, selectChartLines, selectCurrentPosition, selectTrades, setupTrade } from '../../slices';
 import { AppDispatch } from '../../store/store';
+import Button from '../Forms/Button';
 
 export const ChartTools: React.FC = () => {
   const chartLines = useSelector(selectChartLines);
@@ -33,6 +33,7 @@ export const ChartTools: React.FC = () => {
     if (trades.length) {
       stopPlay();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trades]);
 
   const startPlay = () => {

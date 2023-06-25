@@ -14,6 +14,7 @@ const App = () => {
 
   useEffect(() => {
     dispatch(loadGameData());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -21,10 +22,12 @@ const App = () => {
       return;
     }
     dispatch(startGame());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tickers]);
 
   useEffect(() => {
     dispatch(updatePositionSize());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [risk]);
 
   return (

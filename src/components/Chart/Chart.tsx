@@ -1,4 +1,4 @@
-import { ColorType, CrosshairMode, createChart } from '@felipecsl/lightweight-charts';
+import { ColorType, CrosshairMode, IChartApi, ISeriesApi, ITimeScaleApi, createChart } from '@felipecsl/lightweight-charts';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { CandlestickDataWithVolume } from '../../types';
@@ -12,7 +12,6 @@ import { LineControlManager } from './LineControlManager';
 interface Props {
   colors?: {
     backgroundColor?: string;
-    lineColor?: string;
     textColor?: string;
     areaTopColor?: string;
     areaBottomColor?: string;
@@ -24,7 +23,6 @@ export const Chart: React.FC<Props> = (props) => {
   const {
     colors: {
       backgroundColor = 'white',
-      lineColor = '#2962FF',
       textColor = 'black',
       areaTopColor = 'rgba(0, 0, 0, 0)',
       areaBottomColor = 'rgba(0, 0, 0, 0)',
@@ -36,13 +34,13 @@ export const Chart: React.FC<Props> = (props) => {
   const [loadedCandles, setLoadedCandles] = useState<CandlestickDataWithVolume[]>([]);
   const [loadedChuncks, setLoadedChuncks] = useState<string[]>([]);
 
-  const newSeries = useRef<any>(null);
-  const newVolumeSeries = useRef<any>(null);
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartInstanceRef = useRef<any>(null);
-  const timeScaleRef = useRef<any>(null);
-  const loadedCandlesRef = useRef<any>(null);
-  const loadedChuncksRef = useRef<any>(null);
+  const newSeries = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const newVolumeSeries = useRef<ISeriesApi<'Histogram'> | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement | null>(null);
+  const chartInstanceRef = useRef<IChartApi | null>(null);
+  const timeScaleRef = useRef<ITimeScaleApi | null>(null);
+  const loadedCandlesRef = useRef<CandlestickDataWithVolume[]>([]);
+  const loadedChuncksRef = useRef<string[]>([]);
 
   const klines = useSelector(selectKlines);
   const kline = useSelector(selectklineUpdate);
@@ -59,44 +57,53 @@ export const Chart: React.FC<Props> = (props) => {
   };
 
   const listenChartTimeScale = useCallback(
-    debounce(() => {
-      const logicalRange = timeScaleRef.current.getVisibleLogicalRange();
-      if (logicalRange !== null) {
-        const barsInfo = newSeries.current.barsInLogicalRange(logicalRange);
-        if (barsInfo !== null && barsInfo.barsBefore < 10) {
-          if (loadedChuncksRef.current.includes(barsInfo.from)) {
-            return;
-          }
-          setLoadedChuncks([...loadedChuncksRef.current, barsInfo.from]);
-          apiClient
-            .getKline({
-              category: 'linear',
-              symbol: tickerInfo?.symbol as string,
-              interval: interval,
-              end: Number(barsInfo.from) * 1000,
-            })
-            .then((r) => {
-              const candleStickData = r.result.list.map(mapKlineToCandleStickData).sort((a, b) => (a.time as number) - (b.time as number));
-              const allData = [...candleStickData, ...loadedCandlesRef.current].sort((a, b) => (a.time as number) - (b.time as number));
-              const uniqueArr = allData.filter((item, index) => {
-                return (
-                  index ===
-                  allData.findIndex((t) => {
-                    return t.time === item.time;
-                  })
-                );
-              });
-
-              setLoadedCandles(uniqueArr);
-            });
+    () => {
+      debounce(() => {
+        if (!timeScaleRef.current || !newSeries.current) {
+          return;
         }
-      }
-    }, 50),
+
+        const logicalRange = timeScaleRef.current.getVisibleLogicalRange();
+        if (logicalRange !== null) {
+          const barsInfo = newSeries.current.barsInLogicalRange(logicalRange);
+          if (barsInfo !== null && barsInfo.barsBefore < 10) {
+            if (loadedChuncksRef.current.includes(barsInfo.from as string)) {
+              return;
+            }
+            setLoadedChuncks([...loadedChuncksRef.current, barsInfo.from as string]);
+            apiClient
+              .getKline({
+                category: 'linear',
+                symbol: tickerInfo?.symbol as string,
+                interval: interval,
+                end: Number(barsInfo.from) * 1000,
+              })
+              .then((r) => {
+                const candleStickData = r.result.list
+                  .map(mapKlineToCandleStickData)
+                  .sort((a, b) => (a.time as number) - (b.time as number));
+                const allData = [...candleStickData, ...loadedCandlesRef.current].sort((a, b) => (a.time as number) - (b.time as number));
+                const uniqueArr = allData.filter((item, index) => {
+                  return (
+                    index ===
+                    allData.findIndex((t) => {
+                      return t.time === item.time;
+                    })
+                  );
+                });
+
+                setLoadedCandles(uniqueArr);
+              });
+          }
+        }
+      }, 50);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
   const initChart = () => {
-    if (!chartContainerRef.current) {
+    if (!chartContainerRef.current || !tickerInfo) {
       return;
     }
 
@@ -124,13 +131,12 @@ export const Chart: React.FC<Props> = (props) => {
     });
 
     newSeries.current = chartInstanceRef.current.addCandlestickSeries({
-      lineColor,
-      topColor: areaTopColor,
-      bottomColor: areaBottomColor,
+      upColor: areaTopColor,
+      downColor: areaBottomColor,
       priceFormat: {
         type: 'price',
-        precision: tickerInfo?.priceScale,
-        minMove: tickerInfo?.priceFilter.tickSize,
+        precision: Number(tickerInfo.priceScale),
+        minMove: Number(tickerInfo.priceFilter.tickSize),
       },
     });
 
@@ -162,7 +168,7 @@ export const Chart: React.FC<Props> = (props) => {
   };
 
   const destroyChart = () => {
-    if (!chartInstanceRef.current) {
+    if (!chartInstanceRef.current || !timeScaleRef.current) {
       return;
     }
 
@@ -194,27 +200,31 @@ export const Chart: React.FC<Props> = (props) => {
       setIsLoading(true);
       destroyChart();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [klines]);
 
   // Update Kline
   useEffect(() => {
-    if (isLoading || !kline) {
+    if (isLoading || !kline || !newSeries.current || !newVolumeSeries.current) {
       return;
     }
     const parsedKline = JSON.parse(JSON.stringify(kline)) as CandlestickDataWithVolume;
     newSeries.current.update(parsedKline);
     newVolumeSeries.current.update({ time: kline.time, value: kline.volume, color: 'pink' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kline]);
 
   // Update loaded candles
   useEffect(() => {
     loadedCandlesRef.current = loadedCandles;
-    if (isLoading) return;
+    if (isLoading || !newSeries.current || !newVolumeSeries.current) return;
+
     newSeries.current.setData(loadedCandles);
     const volumeData = loadedCandles.map((d: CandlestickDataWithVolume) => {
       return { time: d.time, value: d.volume, color: volumeColor };
     });
     newVolumeSeries.current.setData(volumeData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadedCandles]);
 
   useEffect(() => {
@@ -223,7 +233,7 @@ export const Chart: React.FC<Props> = (props) => {
 
   return (
     <div ref={chartContainerRef} className="relative w-full">
-      {!isLoading ? (
+      {!isLoading && chartInstanceRef.current && newSeries.current ? (
         <>
           <ChartTools />
           <LineControlManager chartInstance={chartInstanceRef.current} seriesInstance={newSeries.current} />

@@ -1,4 +1,4 @@
-import { CustomPriceLineDraggedEventParams } from '@felipecsl/lightweight-charts';
+import { CreatePriceLineOptions, CustomPriceLineDraggedEventParams, IChartApi, IPriceLine, ISeriesApi, LineWidth } from '@felipecsl/lightweight-charts';
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -16,8 +16,8 @@ import { IChartLine } from '../../types';
 import { calculateTargetPnL, formatCurrencyValue } from '../../utils/tradeUtils';
 
 interface LineControlManagerProps {
-  chartInstance: any;
-  seriesInstance: any;
+  chartInstance: IChartApi;
+  seriesInstance: ISeriesApi<'Candlestick'>;
 }
 
 const TP = 'TP';
@@ -34,8 +34,8 @@ export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartIns
   const entryPrice = useSelector(selectEntryPrice);
   const currentPrice = useSelector(selectCurrentPrice);
 
-  const chartLineRefs = useRef<any[]>([]);
-  const linesRef = useRef<any>(undefined);
+  const chartLineRefs = useRef<IPriceLine[]>([]);
+  const linesRef = useRef<IChartLine[]>([]);
 
   const dispatch = useDispatch<AppDispatch>();
 
@@ -51,17 +51,20 @@ export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartIns
       setIsLoading(true);
       chartInstance.unsubscribeCustomPriceLineDragged(priceLineHandler);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     linesRef.current = [...chartLines];
     if (isLoading) return;
     setupChartLines();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chartLines]);
 
   useEffect(() => {
     if (isLoading) return;
     updateChartLines();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tickerInfo, positionSize, currentPosition]);
 
   const removeChartLines = () => {
@@ -76,13 +79,12 @@ export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartIns
     return `${l.type} ${index}${SEPARATOR}`;
   };
 
-  const getLineConf = (l: IChartLine, index: number) => {
+  const getLineConf = (l: IChartLine, index: number):CreatePriceLineOptions => {
     const sharedConf = {
       title: getLineTitle(l, index),
-      price: l.price,
+      price: Number(l.price),
       draggable: l.draggable,
-      lineWidth: 1,
-      lineStyle: null,
+      lineWidth: 1 as LineWidth,
       axisLabelVisible: true,
     };
     switch (l.type) {
@@ -140,7 +142,7 @@ export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartIns
   const priceLineHandler = (params: CustomPriceLineDraggedEventParams) => {
     const { customPriceLine } = params;
     const { title, price } = customPriceLine.options();
-    const formatedPrice: string = chartInstance.priceScale('right').formatPrice(price);
+    const formatedPrice: string = chartInstance.priceScale('right').formatPrice(price, 0);
     const extractedIndex = Number(title.match(/(?:TP|SL|ENTRY) (\d+)(?: > )/)?.[1]) - 1;
 
     if (title.startsWith(TP) || title.startsWith(SL) || title.startsWith(ENTRY)) {
