@@ -66,11 +66,11 @@ export const ChartTools: React.FC = () => {
     if (intervalId) return;
     const id = setInterval(
       () => {
-        if (klines2EndRef.current && klines2EndRef.current === 100) {
+        if (klines2EndRef.current && (klines2EndRef.current === 100 || klines2EndRef.current === 60)) {
           dispatch(loadChartFuture());
+        } else {
+          dispatch(playChart());
         }
-
-        dispatch(playChart());
       },
       position ? 25 : 250,
     );

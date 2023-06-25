@@ -212,7 +212,7 @@ const gameSlice = createSlice({
         const { symbol, klines } = action.payload as { symbol: string; klines: CandlestickDataWithVolume[] };
 
         state.symbol = symbol;
-        state.klines = klines.splice(0, 200) as CandlestickDataWithVolume[];
+        state.klines = klines.splice(0, klines.length/2) as CandlestickDataWithVolume[];
         state.klinesFuture = [...klines];
         state.trades = [];
         state.capital = INITIAL_CAPITAL;
@@ -231,7 +231,7 @@ const gameSlice = createSlice({
       .addCase(skipChart.fulfilled, (state, action) => {
         const { symbol, klines } = action.payload as { symbol: string; klines: CandlestickDataWithVolume[] };
         state.symbol = symbol;
-        state.klines = klines.splice(0, 200) as CandlestickDataWithVolume[];
+        state.klines = klines.splice(0, klines.length/2) as CandlestickDataWithVolume[];
         state.klinesFuture = [...klines];
         state.chartLines = [];
         state.gameState = 'start';
