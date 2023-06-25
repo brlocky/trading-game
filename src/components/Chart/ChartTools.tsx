@@ -39,7 +39,7 @@ export const ChartTools: React.FC = () => {
 
   useEffect(() => {
     if (klines2End === 50) dispatch(loadChartFuture());
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [klines2End]);
 
   useEffect(() => {
@@ -105,9 +105,11 @@ export const ChartTools: React.FC = () => {
         ) : null}
         {!chartLines.length ? (
           <>
-            <Button className="bg-blue-200" onClick={addLines}>
-              Setup Trade
-            </Button>
+            {!intervalId ? (
+              <Button className="bg-blue-200" onClick={addLines}>
+                Setup Trade
+              </Button>
+            ) : null}
             <Button className="bg-green-200" onClick={intervalId ? stopPlay : startPlay}>
               <FontAwesomeIcon icon={intervalId ? faStop : faForward} />
             </Button>
