@@ -5,6 +5,7 @@ import { Chart } from './components/Chart';
 import { GameInput } from './components/Game';
 import { loadGameData, selectIsLoading, selectRisk, selectTickers, startGame, updatePositionSize } from './slices';
 import { AppDispatch } from './store/store';
+import { ToastContainer } from 'react-toastify';
 
 const App = () => {
   const isLoading = useSelector(selectIsLoading);
@@ -32,6 +33,7 @@ const App = () => {
 
   return (
     <div className="flex flex-col w-full min-h-screen bg-slate-500 justify-center items-center relative">
+      <ToastContainer />
       {!isLoading ? (
         <>
           <GameInput />
