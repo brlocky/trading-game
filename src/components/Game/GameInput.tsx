@@ -1,13 +1,14 @@
 import { useDispatch, useSelector } from 'react-redux';
-import { selectCapital, selectRisk, selectTradeCount, skipChart, startGame, updateRisk } from '../../slices';
+import { selectCapital, selectCurrentPosition, selectRisk, selectTradeCount, skipChart, startGame, updateRisk } from '../../slices';
 import { formatCurrencyValue } from '../../utils/tradeUtils';
 import Button from '../Forms/Button';
-import { IGameRisk } from '../../types';
+import { GameRisk } from '../../types';
 import { AppDispatch } from '../../store/store';
 
 export const GameInput = () => {
   const capital = useSelector(selectCapital);
   const tradeCount = useSelector(selectTradeCount);
+  const position = useSelector(selectCurrentPosition);
   const risk = useSelector(selectRisk);
   const dispatch = useDispatch<AppDispatch>();
 
@@ -19,7 +20,7 @@ export const GameInput = () => {
     dispatch(skipChart());
   };
 
-  const setRisk = (r: IGameRisk) => {
+  const setRisk = (r: GameRisk) => {
     dispatch(updateRisk(r));
   };
 
@@ -32,7 +33,7 @@ export const GameInput = () => {
     <div className="flex w-full justify-between p-4">
       <div className="flex gap-x-2 ">
         <Button onClick={resetGame}>New Game</Button>
-        <Button onClick={nextChart}>Skip Chart</Button>
+        <Button onClick={nextChart} disabled={!!position}>Skip Chart</Button>
       </div>
       <div className="flex gap-x-2">
         <div className="bg-blue-200 rounded-sm items-center flex justify-center p-2">
@@ -53,7 +54,7 @@ export const GameInput = () => {
       </div>
       <div className="flex gap-x-2">
         <div className="bg-blue-200 rounded-sm items-center flex p-2 justify-center">
-          <span className="text-xs pr-2">Trades </span> {tradeCount} / 10
+          <span className="text-xs pr-2">Trades </span> {tradeCount}
         </div>
         <div className="bg-blue-200 rounded-sm items-center flex p-2 justify-center">
           <span className="text-xs pr-2">Capital </span>

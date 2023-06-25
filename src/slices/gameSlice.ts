@@ -3,16 +3,17 @@ import { KlineIntervalV3, LinearInverseInstrumentInfoV5 } from 'bybit-api';
 import { RestClientV5 } from 'bybit-api/lib/rest-client-v5';
 import { mapKlineToCandleStickData } from '../mappers';
 import { RootState } from '../store/store';
-import { CandlestickDataWithVolume, IChartLine, IGameRisk, IGameTradeSide } from '../types';
+import { CandlestickDataWithVolume, IChartLine, GameRisk, GameTradeSide, GameState } from '../types';
 
-type gameState = 'stopped' | 'playing';
+const MAX_TRADES = 10;
+const INITIAL_CAPITAL = 100;
 
 interface IGamePosition {
   symbol: string;
   qty: string;
   value: string;
   price: string;
-  side: IGameTradeSide;
+  side: GameTradeSide;
   tp: string;
   sl: string;
 }
@@ -28,7 +29,7 @@ interface IGameTrade {
   qty: string;
   price: string;
   exitPrice: string;
-  side: IGameTradeSide;
+  side: GameTradeSide;
   pnl: string;
 }
 
@@ -41,9 +42,9 @@ interface IGame {
   klinesFuture: CandlestickDataWithVolume[];
   trades: IGameTrade[];
   capital: number;
-  risk: IGameRisk;
+  risk: GameRisk;
   position: IGamePosition | undefined;
-  state: gameState;
+  gameState: GameState;
   positionSize: number;
   chartLines: IChartLine[];
   interval: KlineIntervalV3;
@@ -60,8 +61,8 @@ const initialState: IGame = {
   capital: 0,
   risk: 1,
   position: undefined,
-  state: 'stopped',
-  positionSize: 1,
+  gameState: 'start',
+  positionSize: 0,
   chartLines: [],
   interval: '60',
 };
@@ -79,7 +80,7 @@ const gameSlice = createSlice({
     removeChartLine(state, action: PayloadAction<{ index: number }>) {
       state.chartLines.splice(action.payload.index, 1);
     },
-    updateRisk(state, action: PayloadAction<IGameRisk>) {
+    updateRisk(state, action: PayloadAction<GameRisk>) {
       state.risk = action.payload;
     },
     openPosition(state, action: PayloadAction<{ position: IGameNewPosition }>) {
@@ -93,6 +94,7 @@ const gameSlice = createSlice({
         tp: position.tp,
         sl: position.sl,
       };
+      state.gameState = 'in-game';
     },
     setupTrade(state) {
       const lastPrice = state.klines[state.klines.length - 1].close;
@@ -102,7 +104,7 @@ const gameSlice = createSlice({
         {
           type: 'ENTRY',
           price: lastPrice.toString(),
-          draggable: true,
+          draggable: false,
         },
         {
           type: 'TP',
@@ -127,7 +129,7 @@ const gameSlice = createSlice({
       const sl = Number(state.chartLines.find((l) => l.type === 'SL')?.price);
 
       const riskValue = state.capital * (state.risk / 100);
-      state.positionSize = riskValue / (entry - sl);
+      state.positionSize = Math.abs(riskValue / (entry - sl));
     },
     playChart(state) {
       if (!state.klinesFuture.length) {
@@ -145,37 +147,52 @@ const gameSlice = createSlice({
             side: state.position.side,
             pnl: pnl.toString(),
           };
-          state.trades = [newTrade, ...state.trades];
+          state.trades = [...state.trades, newTrade];
           state.capital = state.capital + pnl;
           state.position = undefined;
-          state.chartLines = [];
+          state.gameState = 'trade-end';
+
+          if (state.trades.length >= MAX_TRADES) {
+            state.gameState = 'gameover';
+          }
+        } else {
+          state.gameState = 'symbol-end';
         }
+
+        state.chartLines = [];
         return;
       }
 
       const newBar = state.klinesFuture.splice(0, 1).pop() as CandlestickDataWithVolume;
 
       if (state.position) {
-        const isTP = Number(state.position.tp) > newBar.low && Number(state.position.tp) < newBar.high;
-        const isSL = Number(state.position.sl) > newBar.low && Number(state.position.sl) < newBar.high;
-        if (isTP || isSL) {
+        const tpHit = state.position.side === 'Buy' ? Number(state.position.tp) < newBar.high : Number(state.position.tp) > newBar.low;
+        const slHit = state.position.side === 'Buy' ? Number(state.position.sl) > newBar.low : Number(state.position.sl) < newBar.high;
+
+        if (tpHit || slHit) {
           const entryPrice = state.position.price;
-          const exitPrice = isTP ? state.position.tp : state.position.sl;
+          const exitPrice = tpHit ? state.position.tp : state.position.sl;
           const pnl =
             (state.position.side === 'Buy' ? Number(exitPrice) - Number(entryPrice) : Number(entryPrice) - Number(exitPrice)) *
             Number(state.position.qty);
+
           const newTrade = {
             symbol: state.symbol as string,
             qty: state.position.qty,
             price: entryPrice,
             exitPrice: exitPrice,
             side: state.position.side,
-            pnl: pnl.toFixed(),
+            pnl: pnl.toFixed(2),
           };
-          state.trades = [newTrade, ...state.trades];
+          state.trades = [...state.trades, newTrade];
           state.capital = state.capital + pnl;
           state.position = undefined;
           state.chartLines = [];
+          state.gameState = 'trade-end';
+
+          if (state.trades.length >= MAX_TRADES) {
+            state.gameState = 'gameover';
+          }
         }
       }
 
@@ -196,16 +213,17 @@ const gameSlice = createSlice({
       })
       .addCase(startGame.fulfilled, (state, action) => {
         const { symbol, klines } = action.payload as { symbol: string; klines: CandlestickDataWithVolume[] };
+
         state.symbol = symbol;
         state.klines = klines.splice(0, 20) as CandlestickDataWithVolume[];
         state.klinesFuture = [...klines];
         state.trades = [];
-        state.capital = 1000;
+        state.capital = INITIAL_CAPITAL;
         state.position = undefined;
-        state.state = 'stopped';
-        state.positionSize = 1;
-        state.loading = 'idle';
         state.chartLines = [];
+        state.gameState = 'start';
+        state.positionSize = 0;
+        state.loading = 'idle';
       })
       .addCase(startGame.pending, (state) => {
         state.loading = 'pending';
@@ -218,10 +236,9 @@ const gameSlice = createSlice({
         state.symbol = symbol;
         state.klines = klines.splice(0, 20) as CandlestickDataWithVolume[];
         state.klinesFuture = [...klines];
-        state.state = 'stopped';
-        state.positionSize = 1;
         state.chartLines = [];
-
+        state.gameState = 'start';
+        state.positionSize = 0;
         state.loading = 'idle';
       })
       .addCase(skipChart.pending, (state) => {
@@ -315,6 +332,7 @@ export const loadChartHistory = createAsyncThunk<CandlestickDataWithVolume[], nu
 
 // Other code such as selectors can use the imported `RootState` type
 export const selectIsLoading = (state: RootState) => state.game.loading !== 'idle' || !state.game.klines.length;
+export const selectGameState = (state: RootState) => state.game.gameState;
 export const selectErrors = (state: RootState) => state.game.errors;
 export const selectTickers = (state: RootState) => state.game.tickers;
 export const selectKlines = (state: RootState) => state.game.klines;
@@ -323,20 +341,10 @@ export const selectInterval = (state: RootState) => state.game.interval;
 export const selectCapital = (state: RootState) => state.game.capital;
 export const selectRisk = (state: RootState) => state.game.risk;
 export const selectTrades = (state: RootState) => state.game.trades;
-export const selectTradeCount = (state: RootState) => state.game.trades.length;
+export const selectTradeCount = (state: RootState) => `${state.game.trades.length} / ${MAX_TRADES}`;
 export const selectCurrentPosition = (state: RootState) => state.game.position;
 export const selectChartLines = (state: RootState) => state.game.chartLines;
 export const selectPositionSize = (state: RootState) => state.game.positionSize;
 export const selectEntryPrice = (state: RootState) => (state.game.position ? state.game.position.price : selectCurrentPrice(state));
 export const selectCurrentPrice = (state: RootState) =>
   state.game.klines.length ? state.game.klines[state.game.klines.length - 1].close : 0;
-
-// export const selectPositionSize = (state: RootState) => state.gameSlice.;
-// export const selectTakeProfits = (state: RootState) => state.tradeSetup.chartLines.filter((l) => l.type === 'TP');
-// export const selectStopLosses = (state: RootState) => state.tradeSetup.chartLines.filter((l) => l.type === 'SL');
-// export const selectLines = (state: RootState) => state.tradeSetup.chartLines;
-// export const selectLeverage = (state: RootState) => state.tradeSetup.leverage;
-// export const selectEntryPrice = (state: RootState) =>
-//   state.tradeSetup.chartLines.find((l) => l.type === 'ENTRY' && l.draggable === false)?.price.toString() ||
-//   state.symbol.kline?.close ||
-//   '0';

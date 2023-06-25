@@ -1,12 +1,10 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-
+import { ToastContainer } from 'react-toastify';
 import { Chart } from './components/Chart';
-import { GameInput } from './components/Game';
+import { GameInput, GameStateController } from './components/Game';
 import { loadGameData, selectIsLoading, selectRisk, selectTickers, startGame, updatePositionSize } from './slices';
 import { AppDispatch } from './store/store';
-import { ToastContainer } from 'react-toastify';
-import { Modal } from './components/Modal';
 
 const App = () => {
   const isLoading = useSelector(selectIsLoading);
@@ -35,7 +33,7 @@ const App = () => {
   return (
     <div className="flex flex-col w-full min-h-screen bg-slate-500 items-center">
       <ToastContainer />
-      {/* <Modal open={true} header={'Modal'} >Ola</Modal> */}
+      <GameStateController />
       {!isLoading ? (
         <>
           <GameInput />

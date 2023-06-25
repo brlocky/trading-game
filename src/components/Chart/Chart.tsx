@@ -170,7 +170,6 @@ export const Chart: React.FC<Props> = (props) => {
 
   // Handle Resize
   useEffect(() => {
-    console.log('init chart');
     setIsLoading(true);
     initChart();
     setIsLoading(false);
@@ -186,25 +185,7 @@ export const Chart: React.FC<Props> = (props) => {
 
   // Build Chart
   useEffect(() => {
-    if (!klines.length) {
-      return;
-    }
-
     updateChartData(klines);
-    // if (klines.length && chartInstanceRef.current) {
-    //   console.log('update chart');
-    //   updateChartData(klines);
-    // } else {
-    //   console.log('init chart');
-    //   setIsLoading(true);
-    //   initChart();
-    //   setIsLoading(false);
-    // }
-
-    // return () => {
-    //   setIsLoading(true);
-    //   destroyChart();
-    // };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [klines]);
 

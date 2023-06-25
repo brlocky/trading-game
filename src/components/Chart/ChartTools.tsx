@@ -2,16 +2,15 @@ import { faForward, faStop } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { openPosition, playChart, selectChartLines, selectCurrentPosition, selectTrades, setupTrade } from '../../slices';
+import { openPosition, playChart, selectChartLines, selectCurrentPosition, selectGameState, setupTrade } from '../../slices';
 import { AppDispatch } from '../../store/store';
 import Button from '../Forms/Button';
 
 export const ChartTools: React.FC = () => {
   const chartLines = useSelector(selectChartLines);
   const position = useSelector(selectCurrentPosition);
-  const trades = useSelector(selectTrades);
+  const gameState = useSelector(selectGameState);
   const dispatch = useDispatch<AppDispatch>();
-  
 
   const [intervalId, setIntervalId] = useState<number | undefined>();
   const intervalRef = useRef<number>();
@@ -29,13 +28,27 @@ export const ChartTools: React.FC = () => {
   }, [intervalId]);
 
   useEffect(() => {
-    if (trades.length) {
+    if (position) {
+      startPlay();
+    } else {
       stopPlay();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trades]);
+  }, [position]);
+
+  useEffect(() => {
+    switch (gameState) {
+      case 'gameover':
+      case 'symbol-end':
+      case 'trade-end':
+        stopPlay();
+        break;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState]);
 
   const startPlay = () => {
+    if (intervalId) return;
     const id = setInterval(
       () => {
         dispatch(playChart());
@@ -46,6 +59,7 @@ export const ChartTools: React.FC = () => {
   };
 
   const stopPlay = () => {
+    if (!intervalId) return;
     clearInterval(intervalId);
     setIntervalId(undefined);
   };
@@ -61,25 +75,29 @@ export const ChartTools: React.FC = () => {
   };
 
   const addLines = () => {
-    dispatch(setupTrade())
+    dispatch(setupTrade());
   };
 
   return (
     <div className="absolute top-0 z-10 flex gap-x-2 p-2 w-full justify-center">
       <div className="flex gap-x-2 rounded-lg bg-gray-700 p-2 ">
         {!position && chartLines.length ? (
-          <Button className="bg-blue-200" onClick={openTrade}>
-            Open Trade
-          </Button>
+          <>
+            <Button className="bg-blue-200" onClick={openTrade}>
+              Open Trade
+            </Button>
+          </>
         ) : null}
         {!chartLines.length ? (
-          <Button className="bg-blue-200" onClick={addLines}>
-            Setup Trade
-          </Button>
+          <>
+            <Button className="bg-blue-200" onClick={addLines}>
+              Setup Trade
+            </Button>
+            <Button className="bg-green-200" onClick={intervalId ? stopPlay : startPlay}>
+              <FontAwesomeIcon icon={intervalId ? faStop : faForward} />
+            </Button>
+          </>
         ) : null}
-        <Button className="bg-green-200" onClick={intervalId ? stopPlay : startPlay}>
-          <FontAwesomeIcon icon={intervalId ? faStop : faForward} />
-        </Button>
       </div>
     </div>
   );
