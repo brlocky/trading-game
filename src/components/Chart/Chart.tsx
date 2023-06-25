@@ -60,49 +60,49 @@ export const Chart: React.FC<Props> = (props) => {
 
   const listenChartTimeScale = useCallback(
     () => {
-      debounce(() => {
-        if (!timeScaleRef.current || !newSeries.current) {
-          return;
-        }
-
-        const logicalRange = timeScaleRef.current.getVisibleLogicalRange();
-        if (logicalRange !== null) {
-          const barsInfo = newSeries.current.barsInLogicalRange(logicalRange);
-          if (barsInfo !== null && barsInfo.barsBefore < 10) {
-            if (loadedChuncksRef.current.includes(barsInfo.from as string)) {
-              return;
-            }
-            setLoadedChuncks([...loadedChuncksRef.current, barsInfo.from as string]);
-            apiClient
-              .getKline({
-                category: 'linear',
-                symbol: tickerInfo?.symbol as string,
-                interval: interval,
-                end: Number(barsInfo.from) * 1000,
-              })
-              .then((r) => {
-                const candleStickData = r.result.list
-                  .map(mapKlineToCandleStickData)
-                  .sort((a, b) => (a.time as number) - (b.time as number));
-                const allData = [...candleStickData, ...loadedCandlesRef.current].sort((a, b) => (a.time as number) - (b.time as number));
-                const uniqueArr = allData.filter((item, index) => {
-                  return (
-                    index ===
-                    allData.findIndex((t) => {
-                      return t.time === item.time;
-                    })
-                  );
-                });
-
-                setLoadedCandles(uniqueArr);
-              });
-          }
-        }
-      }, 50);
+      return loadHistoryCandles();
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
+
+  const loadHistoryCandles = debounce(() => {
+    if (!timeScaleRef.current || !newSeries.current) {
+      return;
+    }
+
+    const logicalRange = timeScaleRef.current.getVisibleLogicalRange();
+    if (logicalRange !== null) {
+      const barsInfo = newSeries.current.barsInLogicalRange(logicalRange);
+      if (barsInfo !== null && barsInfo.barsBefore < 10) {
+        if (loadedChuncksRef.current.includes(barsInfo.from as string)) {
+          return;
+        }
+        setLoadedChuncks([...loadedChuncksRef.current, barsInfo.from as string]);
+        apiClient
+          .getKline({
+            category: 'linear',
+            symbol: tickerInfo?.symbol as string,
+            interval: interval,
+            end: Number(barsInfo.from) * 1000,
+          })
+          .then((r) => {
+            const candleStickData = r.result.list.map(mapKlineToCandleStickData).sort((a, b) => (a.time as number) - (b.time as number));
+            const allData = [...candleStickData, ...loadedCandlesRef.current].sort((a, b) => (a.time as number) - (b.time as number));
+            const uniqueArr = allData.filter((item, index) => {
+              return (
+                index ===
+                allData.findIndex((t) => {
+                  return t.time === item.time;
+                })
+              );
+            });
+
+            setLoadedCandles(uniqueArr);
+          });
+      }
+    }
+  }, 50);
 
   const initChart = () => {
     if (!chartContainerRef.current || !tickerInfo) {
