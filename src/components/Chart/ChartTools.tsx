@@ -29,7 +29,6 @@ export const ChartTools: React.FC = () => {
   }, [intervalId]);
 
   useEffect(() => {
-    console.log('New trade', trades);
     if (trades.length) {
       stopPlay();
     }
