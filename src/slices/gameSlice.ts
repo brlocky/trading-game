@@ -5,7 +5,7 @@ import { mapKlineToCandleStickData } from '../mappers';
 import { RootState } from '../store/store';
 import { CandlestickDataWithVolume, IChartLine, GameRisk, GameTradeSide, GameState } from '../types';
 
-const MAX_TRADES = 10;
+const MAX_TRADES = 3;
 const INITIAL_CAPITAL = 100;
 
 interface IGamePosition {
@@ -285,33 +285,28 @@ export const startGame = createAsyncThunk<unknown, void, { state: RootState }>('
   const { tickers, interval } = getState().game;
   const randomSymbol = getRandomString(tickers.map((t) => t.symbol));
 
-  const client = new RestClientV5();
-  const klineResponse = await client.getKline({ category: 'linear', symbol: randomSymbol, interval });
-  const klines1 = klineResponse.result.list.map(mapKlineToCandleStickData).sort((a, b) => (a.time as number) - (b.time as number));
-  const end = Number(klines1[0].time) * 1000;
-  const klineResponse1 = await client.getKline({ category: 'linear', symbol: randomSymbol, interval, end: end });
-  const klines = [...klines1, ...klineResponse1.result.list.map(mapKlineToCandleStickData)].sort(
-    (a, b) => (a.time as number) - (b.time as number),
-  );
-
-  return { symbol: randomSymbol, klines };
+  return prepareGameChartData(randomSymbol, interval);
 });
 
 export const skipChart = createAsyncThunk<unknown, void, { state: RootState }>('game/skipchart', async (_, { getState }) => {
   const { tickers, interval } = getState().game;
   const randomSymbol = getRandomString(tickers.map((t) => t.symbol));
 
+  return prepareGameChartData(randomSymbol, interval);
+});
+
+const prepareGameChartData = async (symbol: string, interval: KlineIntervalV3) => {
   const client = new RestClientV5();
-  const klineResponse = await client.getKline({ category: 'linear', symbol: randomSymbol, interval });
+  const klineResponse = await client.getKline({ category: 'linear', symbol: symbol, interval });
   const klines1 = klineResponse.result.list.map(mapKlineToCandleStickData).sort((a, b) => (a.time as number) - (b.time as number));
   const end = Number(klines1[0].time) * 1000;
-  const klineResponse1 = await client.getKline({ category: 'linear', symbol: randomSymbol, interval, end: end });
+  const klineResponse1 = await client.getKline({ category: 'linear', symbol: symbol, interval, end: end });
   const klines = [...klines1, ...klineResponse1.result.list.map(mapKlineToCandleStickData)].sort(
     (a, b) => (a.time as number) - (b.time as number),
   );
 
-  return { symbol: randomSymbol, klines };
-});
+  return { symbol: symbol, klines };
+};
 
 export const loadChartHistory = createAsyncThunk<CandlestickDataWithVolume[], number, { state: RootState }>(
   'game/loadChartHistory',

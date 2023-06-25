@@ -2,10 +2,9 @@ import React, { PropsWithChildren, useEffect, useState } from 'react';
 
 interface ModalProps extends PropsWithChildren {
   open: boolean;
-  header: string;
 }
 
-export const Modal: React.FC<ModalProps> = ({ open, header, children }) => {
+export const Modal: React.FC<ModalProps> = ({ open, children }) => {
   const [showModal, setShowModal] = useState(open);
 
   useEffect(() => {
