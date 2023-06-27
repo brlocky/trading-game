@@ -62,7 +62,9 @@ export const ChartTools: React.FC = () => {
   }, [gameState]);
 
   const startPlay = () => {
-    if (intervalId) return;
+    if (intervalId) {
+      stopPlay()
+    }
     const id = setInterval(
       () => {
         dispatch(playChart());
