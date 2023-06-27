@@ -2,7 +2,6 @@ import { ColorType, CrosshairMode, IChartApi, ISeriesApi, ITimeScaleApi, createC
 import { debounce } from 'lodash';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { loadChartHistory, selectKlines, selectTickerInfo } from '../../slices';
-import { AppDispatch } from '../../store/store';
 import { CandlestickDataWithVolume } from '../../types';
 import { ChartTools } from './ChartTools';
 import { LineControlManager } from './LineControlManager';
