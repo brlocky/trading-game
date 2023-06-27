@@ -50,6 +50,9 @@ export const GameInput = () => {
         <Button onClick={() => setRisk(50)} className={`bg-red-400 ${isRiskSelected(50) ? isSelectedClass : ''}`}>
           50%
         </Button>
+        <Button onClick={() => setRisk(100)} className={`bg-red-800 ${isRiskSelected(100) ? isSelectedClass : ''}`}>
+          100%
+        </Button>
       </div>
       <div className="flex gap-x-2">
         <div className="bg-blue-200 rounded-sm items-center flex p-2 justify-center">
