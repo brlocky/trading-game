@@ -67,7 +67,7 @@ export const ChartTools: React.FC = () => {
       () => {
         dispatch(playChart());
       },
-      position ? 25 : 250,
+      position ? 25 : 350,
     );
     setIntervalId(id);
   };
