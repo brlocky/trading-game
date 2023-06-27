@@ -132,6 +132,11 @@ const gameSlice = createSlice({
       const riskValue = state.capital * (state.risk / 100);
       state.positionSize = Math.abs(riskValue / (entry - sl));
     },
+    resetChart(state) {
+      state.gameState = 'start';
+      state.positionSize = 0;
+      state.chartLines = [];
+    },
     playChart(state) {
       if (!state.klinesFuture.length) {
         if (state.position) {
@@ -282,7 +287,7 @@ const gameSlice = createSlice({
   },
 });
 
-export const { addChartLine, removeChartLine, updateChartLine, playChart, openPosition, updateRisk, setupTrade, updatePositionSize } =
+export const { addChartLine, removeChartLine, updateChartLine, playChart, openPosition, updateRisk, setupTrade, updatePositionSize, resetChart } =
   gameSlice.actions;
 
 export const gameReducer = gameSlice.reducer;

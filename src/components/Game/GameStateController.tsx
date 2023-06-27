@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { selectGameState, selectTrades, skipChart, startGame } from '../../slices';
+import { useAppDispatch, useAppSelector } from '../../hooks';
+import { resetChart, selectGameState, selectTrades, skipChart, startGame } from '../../slices';
+import { formatCurrencyValue } from '../../utils/tradeUtils';
 import Button from '../Forms/Button';
 import { Modal } from '../Modal';
-import { formatCurrencyValue } from '../../utils/tradeUtils';
-import { useAppDispatch, useAppSelector } from '../../hooks';
 
 export const GameStateController = () => {
   const gameState = useAppSelector(selectGameState);
@@ -55,21 +55,18 @@ export const GameStateController = () => {
 
   const nextTrade = () => {
     setVisible(false);
-    setTimeout(() => {
-      dispatch(skipChart());
-    }, 2000);
+    dispatch(skipChart());
   };
 
   const sameChart = () => {
     setVisible(false);
 
+    dispatch(resetChart());
   };
 
   const newGame = () => {
     setVisible(false);
-    setTimeout(() => {
-      dispatch(startGame());
-    }, 1500);
+    dispatch(startGame());
   };
 
   const lastTrade = [...trades].pop();
@@ -81,7 +78,7 @@ export const GameStateController = () => {
     <Modal open={visible}>
       <div className={`flex flex-col gap-x-5 gap-y-10 grow p-10 w-96 h-96 justify-between items-center rounded-2xl ${bgColor}`}>
         <div className="flex flex-col gap-y-2">{renderContent()}</div>
-        <div className='flex gap-x-2'>
+        <div className="flex gap-x-2">
           {gameState === 'gameover' ? (
             <Button onClick={newGame}>New Game</Button>
           ) : (
