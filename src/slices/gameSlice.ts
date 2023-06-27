@@ -99,8 +99,8 @@ const gameSlice = createSlice({
     },
     setupTrade(state) {
       const lastPrice = state.klines[state.klines.length - 1].close;
-      const tp = lastPrice + lastPrice * 0.05;
-      const sl = lastPrice - lastPrice * 0.05;
+      const tp = lastPrice + lastPrice * 0.01;
+      const sl = lastPrice - lastPrice * 0.01;
       state.chartLines = [
         {
           type: 'ENTRY',
@@ -131,6 +131,10 @@ const gameSlice = createSlice({
 
       const riskValue = state.capital * (state.risk / 100);
       state.positionSize = Math.abs(riskValue / (entry - sl));
+      const lastPrice = state.klines[state.klines.length-1].close;
+      if (state.positionSize * lastPrice > state.capital) {
+        state.positionSize = state.capital / lastPrice
+      }
     },
     resetChart(state) {
       state.gameState = 'start';
@@ -193,7 +197,7 @@ const gameSlice = createSlice({
           state.position = undefined;
           state.gameState = 'trade-end';
 
-          if (state.trades.length >= MAX_TRADES) {
+          if (state.trades.length >= MAX_TRADES || state.capital <= 0) {
             state.gameState = 'gameover';
           }
         }
