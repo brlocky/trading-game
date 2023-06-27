@@ -1,7 +1,7 @@
 import { faForward, faStop } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import React, { useEffect, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useAppDispatch, useAppSelector } from '../../hooks';
 import {
   loadChartFuture,
   openPosition,
@@ -12,15 +12,14 @@ import {
   selectKlines2End,
   setupTrade,
 } from '../../slices';
-import { AppDispatch } from '../../store/store';
 import Button from '../Forms/Button';
 
 export const ChartTools: React.FC = () => {
-  const chartLines = useSelector(selectChartLines);
-  const klines2End = useSelector(selectKlines2End);
-  const position = useSelector(selectCurrentPosition);
-  const gameState = useSelector(selectGameState);
-  const dispatch = useDispatch<AppDispatch>();
+  const chartLines = useAppSelector(selectChartLines);
+  const klines2End = useAppSelector(selectKlines2End);
+  const position = useAppSelector(selectCurrentPosition);
+  const gameState = useAppSelector(selectGameState);
+  const dispatch = useAppDispatch();
 
   const [intervalId, setIntervalId] = useState<number | undefined>();
   const intervalRef = useRef<number>();

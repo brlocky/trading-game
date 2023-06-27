@@ -7,7 +7,7 @@ import {
   LineWidth,
 } from '@felipecsl/lightweight-charts';
 import React, { useEffect, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useAppDispatch, useAppSelector } from '../../hooks';
 import {
   selectChartLines,
   selectCurrentPosition,
@@ -17,7 +17,6 @@ import {
   updateChartLine,
   updatePositionSize
 } from '../../slices';
-import { AppDispatch } from '../../store/store';
 import { IChartLine } from '../../types';
 import { calculateTargetPnL, formatCurrencyValue } from '../../utils/tradeUtils';
 
@@ -32,17 +31,17 @@ const ENTRY = 'ENTRY';
 const SEPARATOR = ' > ';
 
 export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartInstance, seriesInstance }) => {
-  const tickerInfo = useSelector(selectTickerInfo);
-  const currentPosition = useSelector(selectCurrentPosition);
-  const positionSize = useSelector(selectPositionSize);
+  const tickerInfo = useAppSelector(selectTickerInfo);
+  const currentPosition = useAppSelector(selectCurrentPosition);
+  const positionSize = useAppSelector(selectPositionSize);
 
-  const chartLines = useSelector(selectChartLines);
-  const entryPrice = useSelector(selectEntryPrice);
+  const chartLines = useAppSelector(selectChartLines);
+  const entryPrice = useAppSelector(selectEntryPrice);
 
   const chartLineRefs = useRef<IPriceLine[]>([]);
   const linesRef = useRef<IChartLine[]>([]);
 
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useAppDispatch();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 

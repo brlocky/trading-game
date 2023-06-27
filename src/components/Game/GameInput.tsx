@@ -1,16 +1,15 @@
-import { useDispatch, useSelector } from 'react-redux';
 import { selectCapital, selectCurrentPosition, selectRisk, selectTradeCount, skipChart, startGame, updateRisk } from '../../slices';
 import { formatCurrencyValue } from '../../utils/tradeUtils';
 import Button from '../Forms/Button';
 import { GameRisk } from '../../types';
-import { AppDispatch } from '../../store/store';
+import { useAppDispatch, useAppSelector } from '../../hooks';
 
 export const GameInput = () => {
-  const capital = useSelector(selectCapital);
-  const tradeCount = useSelector(selectTradeCount);
-  const position = useSelector(selectCurrentPosition);
-  const risk = useSelector(selectRisk);
-  const dispatch = useDispatch<AppDispatch>();
+  const capital = useAppSelector(selectCapital);
+  const tradeCount = useAppSelector(selectTradeCount);
+  const position = useAppSelector(selectCurrentPosition);
+  const risk = useAppSelector(selectRisk);
+  const dispatch = useAppDispatch();
 
   const resetGame = () => {
     dispatch(startGame());

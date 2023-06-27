@@ -1,12 +1,12 @@
 import { ColorType, CrosshairMode, IChartApi, ISeriesApi, ITimeScaleApi, createChart } from '@felipecsl/lightweight-charts';
 import { debounce } from 'lodash';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import { loadChartHistory, selectKlines, selectTickerInfo } from '../../slices';
 import { AppDispatch } from '../../store/store';
 import { CandlestickDataWithVolume } from '../../types';
 import { ChartTools } from './ChartTools';
 import { LineControlManager } from './LineControlManager';
+import { useAppDispatch, useAppSelector } from '../../hooks';
 
 interface Props {
   colors?: {
@@ -39,10 +39,10 @@ export const Chart: React.FC<Props> = (props) => {
   const timeScaleRef = useRef<ITimeScaleApi | null>(null);
   const loadedChuncksRef = useRef<string[]>([]);
 
-  const klines = useSelector(selectKlines);
-  const tickerInfo = useSelector(selectTickerInfo);
+  const klines = useAppSelector(selectKlines);
+  const tickerInfo = useAppSelector(selectTickerInfo);
 
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useAppDispatch();
 
   const handleResize = () => {
     if (!chartInstanceRef.current) {

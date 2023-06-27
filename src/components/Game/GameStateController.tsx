@@ -1,16 +1,15 @@
 import { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import { selectGameState, selectTrades, skipChart, startGame } from '../../slices';
-import { AppDispatch } from '../../store/store';
 import Button from '../Forms/Button';
 import { Modal } from '../Modal';
 import { formatCurrencyValue } from '../../utils/tradeUtils';
+import { useAppDispatch, useAppSelector } from '../../hooks';
 
 export const GameStateController = () => {
-  const gameState = useSelector(selectGameState);
+  const gameState = useAppSelector(selectGameState);
   const [visible, setVisible] = useState(false);
-  const trades = useSelector(selectTrades);
-  const dispatch = useDispatch<AppDispatch>();
+  const trades = useAppSelector(selectTrades);
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     switch (gameState) {

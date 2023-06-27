@@ -1,16 +1,15 @@
 import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import { ToastContainer } from 'react-toastify';
 import { Chart } from './components/Chart';
 import { GameInput, GameStateController } from './components/Game';
 import { loadGameData, selectIsLoading, selectRisk, selectTickers, startGame, updatePositionSize } from './slices';
-import { AppDispatch } from './store/store';
+import { useAppDispatch, useAppSelector } from './hooks';
 
 const App = () => {
-  const isLoading = useSelector(selectIsLoading);
-  const tickers = useSelector(selectTickers);
-  const risk = useSelector(selectRisk);
-  const dispatch = useDispatch<AppDispatch>();
+  const isLoading = useAppSelector(selectIsLoading);
+  const tickers = useAppSelector(selectTickers);
+  const risk = useAppSelector(selectRisk);
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     dispatch(loadGameData());
