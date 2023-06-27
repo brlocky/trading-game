@@ -94,7 +94,7 @@ export const ChartTools: React.FC = () => {
 
   return (
     <div className="absolute top-0 z-10 flex gap-x-2 p-2 w-full justify-center">
-      <div className="flex gap-x-2 rounded-lg bg-gray-700 p-2 ">
+      <div className="flex gap-x-2 rounded-lg bg-gray-700 p-2 justify-end">
         {!position && chartLines.length ? (
           <>
             <Button className="bg-blue-200" onClick={openTrade}>
@@ -104,11 +104,13 @@ export const ChartTools: React.FC = () => {
         ) : null}
         {!chartLines.length ? (
           <>
-            {!intervalId ? (
-              <Button className="bg-blue-200" onClick={addLines}>
-                Setup Trade
-              </Button>
-            ) : null}
+            <Button className="bg-blue-200" onClick={addLines} disabled={!!intervalId}>
+              Setup Trade
+            </Button>
+          </>
+        ) : null}
+        {!position ? (
+          <>
             <Button className="bg-green-200" onClick={intervalId ? stopPlay : startPlay}>
               <FontAwesomeIcon icon={intervalId ? faStop : faForward} />
             </Button>

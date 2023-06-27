@@ -42,7 +42,9 @@ export const GameStateController = () => {
       message = (
         <>
           <b>Game Over</b>
-          <span>{wins} Wins vs {loses} Loses</span>
+          <span>
+            {wins} Wins vs {loses} Loses
+          </span>
           <span>PnL {formatCurrencyValue(totalPnl)}</span>
         </>
       );
@@ -53,14 +55,19 @@ export const GameStateController = () => {
 
   const nextTrade = () => {
     setVisible(false);
-    setTimeout(()=>{
+    setTimeout(() => {
       dispatch(skipChart());
     }, 2000);
   };
 
+  const sameChart = () => {
+    setVisible(false);
+
+  };
+
   const newGame = () => {
     setVisible(false);
-    setTimeout(()=>{
+    setTimeout(() => {
       dispatch(startGame());
     }, 1500);
   };
@@ -74,8 +81,15 @@ export const GameStateController = () => {
     <Modal open={visible}>
       <div className={`flex flex-col gap-x-5 gap-y-10 grow p-10 w-96 h-96 justify-between items-center rounded-2xl ${bgColor}`}>
         <div className="flex flex-col gap-y-2">{renderContent()}</div>
-        <div>
-          {gameState === 'gameover' ? <Button onClick={newGame}>New Game</Button> : <Button onClick={nextTrade}>Next Trade</Button>}
+        <div className='flex gap-x-2'>
+          {gameState === 'gameover' ? (
+            <Button onClick={newGame}>New Game</Button>
+          ) : (
+            <>
+              <Button onClick={sameChart}>Continue</Button>
+              <Button onClick={nextTrade}>Next Chart</Button>
+            </>
+          )}
         </div>
       </div>
     </Modal>

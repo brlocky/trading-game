@@ -192,6 +192,14 @@ const gameSlice = createSlice({
             state.gameState = 'gameover';
           }
         }
+      } else {
+        // Update entry price when there is no position and chart is playing
+        const index = state.chartLines.findIndex(l => l.type === 'ENTRY')
+        if (index !== -1) {
+          const entry = state.chartLines[index];
+          entry.price = newBar.close.toString();
+          state.chartLines[index] = entry;
+        }
       }
 
       state.klines = [...state.klines, newBar];
@@ -274,7 +282,6 @@ const gameSlice = createSlice({
   },
 });
 
-// export const { updatePositionSize, resetChartLines, addChartLine, removeChartLine, updateChartLine } = gameSlice.actions;
 export const { addChartLine, removeChartLine, updateChartLine, playChart, openPosition, updateRisk, setupTrade, updatePositionSize } =
   gameSlice.actions;
 
