@@ -12,7 +12,7 @@ export interface IChartLine {
 }
 
 
-export type GameRisk = 1 | 5 | 10 | 50;
+export type GameRisk = 1 | 5 | 10 | 50 | 100;
 
 export type GameTradeSide = 'Buy' | 'Sell';
 
