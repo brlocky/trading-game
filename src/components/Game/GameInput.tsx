@@ -1,4 +1,4 @@
-import { selectCapital, selectCurrentPosition, selectRisk, selectTradeCount, skipChart, startGame, updateRisk } from '../../slices';
+import { selectCapital, selectCurrentPosition, selectRisk, selectTradeCount, skipChart, startGame, updatePositionSize, updateRisk } from '../../slices';
 import { formatCurrencyValue } from '../../utils/tradeUtils';
 import Button from '../Forms/Button';
 import { GameRisk } from '../../types';
@@ -21,6 +21,7 @@ export const GameInput = () => {
 
   const setRisk = (r: GameRisk) => {
     dispatch(updateRisk(r));
+    dispatch(updatePositionSize());
   };
 
   const isRiskSelected = (n: number) => {
