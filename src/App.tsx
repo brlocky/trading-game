@@ -4,6 +4,7 @@ import { Chart } from './components/Chart';
 import { GameInput, GameStateController } from './components/Game';
 import { loadGameData, selectIsLoading, selectRisk, selectTickers, startGame, updatePositionSize } from './slices';
 import { useAppDispatch, useAppSelector } from './hooks';
+import 'react-toastify/dist/ReactToastify.css';
 
 const App = () => {
   const isLoading = useAppSelector(selectIsLoading);
