@@ -119,22 +119,13 @@ const gameSlice = createSlice({
         },
       ];
 
-      const riskValue = state.capital * (state.risk / 100);
-      state.positionSize = riskValue / (lastPrice - sl);
+      state.positionSize = calculatePositionSize(state);
     },
     updatePositionSize(state) {
       if (!state.chartLines.length) {
         return;
       }
-      const entry = Number(state.chartLines.find((l) => l.type === 'ENTRY')?.price);
-      const sl = Number(state.chartLines.find((l) => l.type === 'SL')?.price);
-
-      const riskValue = state.capital * (state.risk / 100);
-      state.positionSize = Math.abs(riskValue / (entry - sl));
-      const lastPrice = state.klines[state.klines.length-1].close;
-      if (state.positionSize * lastPrice > state.capital) {
-        state.positionSize = state.capital / lastPrice
-      }
+      state.positionSize = calculatePositionSize(state);
     },
     resetChart(state) {
       state.gameState = 'start';
@@ -160,6 +151,7 @@ const gameSlice = createSlice({
           state.trades = [...state.trades, newTrade];
           state.capital = state.capital + pnl;
           state.position = undefined;
+          state.positionSize = 0;
           state.gameState = 'trade-end';
 
           if (state.trades.length >= MAX_TRADES) {
@@ -196,6 +188,7 @@ const gameSlice = createSlice({
           state.capital = state.capital + pnl;
           state.position = undefined;
           state.gameState = 'trade-end';
+          state.positionSize = 0;
 
           if (state.trades.length >= MAX_TRADES || state.capital <= 0) {
             state.gameState = 'gameover';
@@ -203,7 +196,7 @@ const gameSlice = createSlice({
         }
       } else {
         // Update entry price when there is no position and chart is playing
-        const index = state.chartLines.findIndex(l => l.type === 'ENTRY')
+        const index = state.chartLines.findIndex((l) => l.type === 'ENTRY');
         if (index !== -1) {
           const entry = state.chartLines[index];
           entry.price = newBar.close.toString();
@@ -230,7 +223,7 @@ const gameSlice = createSlice({
         const { symbol, klines } = action.payload as { symbol: string; klines: CandlestickDataWithVolume[] };
 
         state.symbol = symbol;
-        state.klines = klines.splice(0, klines.length/2) as CandlestickDataWithVolume[];
+        state.klines = klines.splice(0, klines.length / 2) as CandlestickDataWithVolume[];
         state.klinesFuture = [...klines];
         state.trades = [];
         state.capital = INITIAL_CAPITAL;
@@ -249,7 +242,7 @@ const gameSlice = createSlice({
       .addCase(skipChart.fulfilled, (state, action) => {
         const { symbol, klines } = action.payload as { symbol: string; klines: CandlestickDataWithVolume[] };
         state.symbol = symbol;
-        state.klines = klines.splice(0, klines.length/2) as CandlestickDataWithVolume[];
+        state.klines = klines.splice(0, klines.length / 2) as CandlestickDataWithVolume[];
         state.klinesFuture = [...klines];
         state.chartLines = [];
         state.gameState = 'start';
@@ -291,8 +284,17 @@ const gameSlice = createSlice({
   },
 });
 
-export const { addChartLine, removeChartLine, updateChartLine, playChart, openPosition, updateRisk, setupTrade, updatePositionSize, resetChart } =
-  gameSlice.actions;
+export const {
+  addChartLine,
+  removeChartLine,
+  updateChartLine,
+  playChart,
+  openPosition,
+  updateRisk,
+  setupTrade,
+  updatePositionSize,
+  resetChart,
+} = gameSlice.actions;
 
 export const gameReducer = gameSlice.reducer;
 
@@ -405,3 +407,16 @@ export const selectPositionSize = (state: RootState) => state.game.positionSize;
 export const selectEntryPrice = (state: RootState) => (state.game.position ? state.game.position.price : selectCurrentPrice(state));
 export const selectCurrentPrice = (state: RootState) =>
   state.game.klines.length ? state.game.klines[state.game.klines.length - 1].close : 0;
+
+const calculatePositionSize = (state: IGame) => {
+  const entry = Number(state.chartLines.find((l) => l.type === 'ENTRY')?.price);
+  const sl = Number(state.chartLines.find((l) => l.type === 'SL')?.price);
+  const riskValue = state.capital * (state.risk / 100);
+  const position = Math.abs(riskValue / (entry - sl));
+  const lastPrice = state.klines[state.klines.length - 1].close;
+  if (position * lastPrice > state.capital) {
+    return state.capital / lastPrice;
+  }
+
+  return position;
+};
