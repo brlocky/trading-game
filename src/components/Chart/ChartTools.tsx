@@ -13,6 +13,7 @@ import {
   setupTrade,
 } from '../../slices';
 import Button from '../Forms/Button';
+import { toast } from 'react-toastify';
 
 export const ChartTools: React.FC = () => {
   const chartLines = useAppSelector(selectChartLines);
@@ -87,7 +88,12 @@ export const ChartTools: React.FC = () => {
     const tp = chartLines.find((l) => l.type === 'TP')?.price || '0';
     const sl = chartLines.find((l) => l.type === 'SL')?.price || '0';
     const price = chartLines.find((l) => l.type === 'ENTRY')?.price || '0';
-    dispatch(openPosition({ position: { price, tp, sl } }));
+
+    if (tp > price && sl > price || tp < price && sl < price) {
+      toast.error('Invalid TP or SL positions');
+    } else {
+      dispatch(openPosition({ position: { price, tp, sl } }));
+    }    
   };
 
   const addLines = () => {
