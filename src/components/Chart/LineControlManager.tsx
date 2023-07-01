@@ -15,7 +15,7 @@ import {
   selectPositionSize,
   selectTickerInfo,
   updateChartLine,
-  updatePositionSize
+  updatePositionSize,
 } from '../../slices';
 import { IChartLine } from '../../types';
 import { calculateTargetPnL, formatCurrencyValue } from '../../utils/tradeUtils';
@@ -151,7 +151,9 @@ export const LineControlManager: React.FC<LineControlManagerProps> = ({ chartIns
 
     if (Number(formatedPrice) > 0 && (title.startsWith(TP) || title.startsWith(SL) || title.startsWith(ENTRY))) {
       dispatch(updateChartLine({ index: extractedIndex, line: { ...linesRef.current[extractedIndex], price: formatedPrice } }));
-      dispatch(updatePositionSize());
+      setTimeout(() => {
+        dispatch(updatePositionSize());
+      }, 100);
     }
   };
 

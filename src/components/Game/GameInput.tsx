@@ -1,4 +1,13 @@
-import { selectCapital, selectCurrentPosition, selectRisk, selectTradeCount, skipChart, startGame, updatePositionSize, updateRisk } from '../../slices';
+import {
+  selectCapital,
+  selectCurrentPosition,
+  selectRisk,
+  selectTradeCount,
+  skipChart,
+  startGame,
+  updatePositionSize,
+  updateRisk,
+} from '../../slices';
 import { formatCurrencyValue } from '../../utils/tradeUtils';
 import Button from '../Forms/Button';
 import { GameRisk } from '../../types';
@@ -21,7 +30,9 @@ export const GameInput = () => {
 
   const setRisk = (r: GameRisk) => {
     dispatch(updateRisk(r));
-    dispatch(updatePositionSize());
+    setTimeout(() => {
+      dispatch(updatePositionSize());
+    }, 100);
   };
 
   const isRiskSelected = (n: number) => {
@@ -33,7 +44,9 @@ export const GameInput = () => {
     <div className="flex w-full justify-between p-4">
       <div className="flex gap-x-2 ">
         <Button onClick={resetGame}>New Game</Button>
-        <Button onClick={nextChart} disabled={!!position}>Skip Chart</Button>
+        <Button onClick={nextChart} disabled={!!position}>
+          Skip Chart
+        </Button>
       </div>
       <div className="flex gap-x-2">
         <div className="bg-blue-200 rounded-sm items-center flex justify-center p-2">

@@ -412,11 +412,13 @@ const calculatePositionSize = (state: IGame) => {
   const entry = Number(state.chartLines.find((l) => l.type === 'ENTRY')?.price);
   const sl = Number(state.chartLines.find((l) => l.type === 'SL')?.price);
   const riskValue = state.capital * (state.risk / 100);
-  const position = Math.abs(riskValue / (entry - sl));
+  const positionSize = riskValue / Math.abs(entry - sl);
+
   const lastPrice = state.klines[state.klines.length - 1].close;
-  if (position * lastPrice > state.capital) {
+
+  if (positionSize * lastPrice > state.capital) {
     return state.capital / lastPrice;
   }
 
-  return position;
+  return positionSize;
 };
