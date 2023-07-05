@@ -64,7 +64,7 @@ export const ChartTools: React.FC = () => {
 
   const startPlay = () => {
     if (intervalId) {
-      stopPlay()
+      stopPlay();
     }
     const id = setInterval(
       () => {
@@ -89,11 +89,11 @@ export const ChartTools: React.FC = () => {
     const sl = chartLines.find((l) => l.type === 'SL')?.price || '0';
     const price = chartLines.find((l) => l.type === 'ENTRY')?.price || '0';
 
-    if (tp > price && sl > price || tp < price && sl < price) {
+    if ((Number(tp) >= Number(price) && Number(sl) >= Number(price)) || (Number(tp) <= Number(price) && Number(sl) <= Number(price))) {
       toast.error('Invalid TP or SL positions');
     } else {
       dispatch(openPosition({ position: { price, tp, sl } }));
-    }    
+    }
   };
 
   const addLines = () => {
