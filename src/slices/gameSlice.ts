@@ -7,7 +7,7 @@ import { CandlestickDataWithVolume, IChartLine, GameRisk, GameTradeSide, GameSta
 
 const MAX_TRADES = 5;
 const INITIAL_CAPITAL = 1000;
-const INTERVAL = '30';
+const INTERVAL = '240';
 
 interface IGamePosition {
   symbol: string;
