@@ -3,7 +3,7 @@ import { KlineIntervalV3, LinearInverseInstrumentInfoV5 } from 'bybit-api';
 import { RestClientV5 } from 'bybit-api/lib/rest-client-v5';
 import { mapKlineToCandleStickData } from '../mappers';
 import { RootState } from '../store/store';
-import { CandlestickDataWithVolume, IChartLine, GameRisk, GameTradeSide, GameState } from '../types';
+import { CandlestickDataWithVolume, IChartLine, GameRisk, GameTradeSide, GameState, GameTimeInterval, GameLoadingState } from '../types';
 
 const MAX_TRADES = 5;
 const INITIAL_CAPITAL = 1000;
@@ -35,7 +35,7 @@ interface IGameTrade {
 }
 
 interface IGame {
-  loading: 'idle' | 'pending';
+  loading: GameLoadingState;
   errors: string[];
   symbol: string | undefined;
   tickers: LinearInverseInstrumentInfoV5[];
@@ -48,7 +48,7 @@ interface IGame {
   gameState: GameState;
   positionSize: number;
   chartLines: IChartLine[];
-  interval: KlineIntervalV3;
+  interval: GameTimeInterval;
 }
 
 const initialState: IGame = {
@@ -72,6 +72,9 @@ const gameSlice = createSlice({
   name: 'game',
   initialState,
   reducers: {
+    updateInterval(state, action: PayloadAction<GameTimeInterval>) {
+      state.interval = action.payload;
+    },
     addChartLine(state, action: PayloadAction<IChartLine>) {
       state.chartLines = [...state.chartLines, { ...action.payload }];
     },
@@ -288,6 +291,7 @@ export const {
   addChartLine,
   removeChartLine,
   updateChartLine,
+  updateInterval,
   playChart,
   openPosition,
   updateRisk,

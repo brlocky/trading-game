@@ -11,9 +11,12 @@ export interface IChartLine {
   draggable: boolean;
 }
 
-
 export type GameRisk = 1 | 5 | 10 | 50 | 100;
 
 export type GameTradeSide = 'Buy' | 'Sell';
 
 export type GameState = 'start' | 'in-game' | 'trade-end' | 'symbol-end' | 'gameover';
+
+export type GameLoadingState = 'idle' | 'pending';
+
+export type GameTimeInterval = '1' | '5' | '15' | '60' | '240' | 'D';

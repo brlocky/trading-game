@@ -12,6 +12,7 @@ import { formatCurrencyValue } from '../../utils/tradeUtils';
 import Button from '../Forms/Button';
 import { GameRisk } from '../../types';
 import { useAppDispatch, useAppSelector } from '../../hooks';
+import { GameIntervalSelector } from '.';
 
 export const GameInput = () => {
   const capital = useAppSelector(selectCapital);
@@ -20,7 +21,7 @@ export const GameInput = () => {
   const risk = useAppSelector(selectRisk);
   const dispatch = useAppDispatch();
 
-  const resetGame = () => {
+  const newGame = () => {
     dispatch(startGame());
   };
 
@@ -43,14 +44,15 @@ export const GameInput = () => {
   return (
     <div className="flex w-full justify-between p-4">
       <div className="flex gap-x-2 ">
-        <Button onClick={resetGame}>New Game</Button>
+        <Button onClick={newGame}>New Game</Button>
         <Button onClick={nextChart} disabled={!!position}>
           Skip Chart
         </Button>
       </div>
       <div className="flex gap-x-2">
+        <GameIntervalSelector />
         <div className="bg-blue-200 rounded-sm items-center flex justify-center p-2">
-          <span className="text-xs pr-2">Risk </span>
+          <span className="text-xs">Risk </span>
         </div>
         <Button onClick={() => setRisk(1)} className={`bg-green-400 ${isRiskSelected(1) ? isSelectedClass : ''}`}>
           1%
