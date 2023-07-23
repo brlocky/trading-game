@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { Chart } from './components/Chart';
 import { GameInput, GameStateController } from './components/Game';
 import { useAppDispatch, useAppSelector } from './hooks';
